@@ -2,6 +2,19 @@
 import SwiftUI
 import SwiftData
 
+public struct SelectedAthleteWrapper: Identifiable {
+    public var id: String { handle }
+    public let handle: String
+    public let name: String
+    public let type: AthleteType
+
+    public init(handle: String, name: String, type: AthleteType) {
+        self.handle = handle
+        self.name = name
+        self.type = type
+    }
+}
+
 // MARK: - Local Feed Fixture Model
 public struct AthletePost: Identifiable {
     public let id: UUID = UUID()
