@@ -131,35 +131,9 @@ struct FeedView: View {
     @State private var shareSheetItem: ShareTextItem? = nil
     @State private var selectedOtherAthleteHandle: String? = nil
     @State private var showingDirectMessages = false
-    @State private var searchText = ""
-    @State private var isSearching = false
-    @State private var selectedFilterCategory: AthleteType? = nil
-    @State private var recentSearches: [String] = ["marcus_lifts", "elena_runs", "kai_athletic"]
 
     private var unblockedPosts: [AthletePost] {
         postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
-    }
-
-    private var matchingAthletes: [OtherAthleteProfile] {
-        let allAthletes = Array(relationshipStore.athleteDirectory.values)
-        let filteredByType: [OtherAthleteProfile]
-        if let selectedType = selectedFilterCategory {
-            filteredByType = allAthletes.filter { $0.athleteType == selectedType }
-        } else {
-            filteredByType = allAthletes
-        }
-
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return filteredByType.filter { $0.handle != currentUserHandle }
-        }
-        let query = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
-        return filteredByType.filter { athlete in
-            athlete.handle != currentUserHandle &&
-            (athlete.handle.lowercased().contains(query) ||
-             athlete.name.lowercased().contains(query) ||
-             athlete.athleteType.rawValue.lowercased().contains(query) ||
-             athlete.bio.lowercased().contains(query))
-        }
     }
 
     private func handleShare(for post: AthletePost) {
@@ -169,16 +143,7 @@ struct FeedView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Athlete Username Search Bar
-                searchBarHeader
-
-                if isSearching || !searchText.isEmpty {
-                    searchResultsView
-                } else {
-                    feedContentView
-                }
-            }
+            feedContentView
             .background(AppTheme.ground.ignoresSafeArea())
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
