@@ -2,218 +2,313 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Local Feed Fixture Model
-public struct AthletePost: Identifiable {
-    public let id: UUID = UUID()
-    public let authorName: String
-    public let authorHandle: String
-    public let athleteType: AthleteType
-    public let authorProfileImageData: Data?
-    public let isPublicAuthor: Bool
-    public let timeAgo: String
-    public let workoutTag: String
-    public let workoutStats: String
-    public let caption: String
-    public let imageName: String
-    public let mediaType: PostMediaType
-    public let mediaItems: [PostMediaItem]
-    public let mediaIconName: String
-    public let gradientColors: [Color]
-    public let audioTrack: AudioTrack?
-    public let textOverlay: String?
-    public var likesCount: Int
-    public var isLiked: Bool
-    public var comments: [PostComment]
-
-    public init(
-        authorName: String,
-        authorHandle: String,
-        athleteType: AthleteType,
-        authorProfileImageData: Data? = nil,
-        isPublicAuthor: Bool = true,
-        timeAgo: String,
-        workoutTag: String,
-        workoutStats: String,
-        caption: String,
-        imageName: String,
-        mediaType: PostMediaType = .photo,
-        mediaItems: [PostMediaItem] = [],
-        mediaIconName: String = "figure.strengthtraining.traditional",
-        gradientColors: [Color] = [Color(red: 0.15, green: 0.05, blue: 0.05), Color(red: 0.35, green: 0.1, blue: 0.1)],
-        audioTrack: AudioTrack? = AudioTrack.library.first,
-        textOverlay: String? = nil,
-        likesCount: Int,
-        isLiked: Bool,
-        comments: [PostComment]
-    ) {
-        self.authorName = authorName
-        self.authorHandle = authorHandle
-        self.athleteType = athleteType
-        self.authorProfileImageData = authorProfileImageData
-        self.isPublicAuthor = isPublicAuthor
-        self.timeAgo = timeAgo
-        self.workoutTag = workoutTag
-        self.workoutStats = workoutStats
-        self.caption = caption
-        self.imageName = imageName
-        self.mediaType = mediaType
-        self.mediaItems = mediaItems.isEmpty ? [
-            PostMediaItem(id: UUID().uuidString, title: workoutTag, iconName: mediaIconName, gradientHexes: ["#1F1111", "#3D1A1A"], subtitle: workoutStats, isVideo: mediaType == .video)
-        ] : mediaItems
-        self.mediaIconName = mediaIconName
-        self.gradientColors = gradientColors
-        self.audioTrack = audioTrack
-        self.textOverlay = textOverlay
-        self.likesCount = likesCount
-        self.isLiked = isLiked
-        self.comments = comments
-    }
-}
-
-public struct PostComment: Identifiable {
-    public let id = UUID()
-    public let author: String
-    public let athleteType: AthleteType?
-    public let text: String
-    public let timeAgo: String
-
-    public init(author: String, athleteType: AthleteType?, text: String, timeAgo: String) {
-        self.author = author
-        self.athleteType = athleteType
-        self.text = text
-        self.timeAgo = timeAgo
-    }
-}
-
-public struct AthleteStory: Identifiable {
-    public let id = UUID()
-    public let name: String
-    public let athleteType: AthleteType
-    public let hasUnseen: Bool
-    public let tag: String
-
-    public init(name: String, athleteType: AthleteType, hasUnseen: Bool, tag: String) {
-        self.name = name
-        self.athleteType = athleteType
-        self.hasUnseen = hasUnseen
-        self.tag = tag
-    }
-}
-
 struct FeedView: View {
-    @Query private var userProfiles: [UserProfile]
-
-    var currentUserProfile: UserProfile? {
-        userProfiles.first
-    }
-
-    var currentUserAthleteType: AthleteType {
-        currentUserProfile?.athleteType ?? .hybrid
-    }
-
-    var currentUserName: String {
-        currentUserProfile?.fullName ?? "You"
-    }
-
-    var currentUserHandle: String {
-        currentUserProfile?.handle ?? "solxce_athlete"
-    }
-
     @ObservedObject private var postStore = FeedPostStore.shared
+    @ObservedObject private var socialManager = SocialPrivacyManager.shared
 
-    // Active full screen reel modal
-    @State private var activeReelPost: AthletePost? = nil
     @State private var showingCreatePostSheet = false
-    @State private var shareSheetItem: ShareTextItem? = nil
+    @State private var showingDirectMessages = false
+    @State private var showingPrivacySettings = false
+    @State private var selectedAthleteForProfile: String? = nil
+    @State private var selectedPostDetail: AthletePost? = nil
+    @State private var activeReelPost: AthletePost? = nil
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 24) {
-                    ForEach($postStore.posts) { $post in
-                        SimplePostCardView(
-                            post: $post,
-                            onShare: {
-                                shareSheetItem = ShareTextItem(text: "Check out @\(post.authorHandle)'s workout on Solxce: \(post.caption)")
-                            },
-                            onOpenReel: {
-                                activeReelPost = post
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    VStack(spacing: AppTheme.Spacing.md) {
+                        // Community Filter Tabs & Stories
+                        communityFilterHeader
+
+                        // Athlete Type Quick Filter Bar
+                        athleteFilterPills
+
+                        // Posts Feed
+                        if postStore.displayedPosts.isEmpty {
+                            emptyFeedView
+                        } else {
+                            LazyVStack(spacing: AppTheme.Spacing.lg) {
+                                ForEach(postStore.displayedPosts) { post in
+                                    PostCardView(
+                                        post: post,
+                                        onAuthorTap: {
+                                            selectedAthleteForProfile = post.authorHandle
+                                        },
+                                        onOpenReel: {
+                                            activeReelPost = post
+                                        },
+                                        onOpenComments: {
+                                            selectedPostDetail = post
+                                        }
+                                    )
+                                }
                             }
-                        )
+                        }
                     }
+                    .padding(.horizontal, AppTheme.Spacing.screenMargin)
+                    .padding(.top, AppTheme.Spacing.sm)
+                    .padding(.bottom, 80)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
+
+                // Floating Action Button for Create Post
+                createPostFloatingButton
             }
             .background(AppTheme.ground.ignoresSafeArea())
-            .navigationTitle("")
+            .navigationTitle("Community")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    SolxceLogoView(size: 42, showGlow: false)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        showingCreatePostSheet = true
+                        showingPrivacySettings = true
                     } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("New Post")
-                                .font(AppTheme.headlineFont)
+                        Image(systemName: "hand.raised.shield")
+                            .font(.system(size: 16))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingDirectMessages = true
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(AppTheme.primary)
+
+                            let unread = socialManager.conversations.reduce(0) { $0 + $1.unreadCount }
+                            if unread > 0 {
+                                Circle()
+                                    .fill(AppTheme.accent)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 4, y: -2)
+                            }
                         }
-                        .foregroundColor(AppTheme.primary)
+                        .frame(width: 36, height: 36)
                     }
                 }
             }
             .sheet(isPresented: $showingCreatePostSheet) {
-                CreateMediaPostSheet(
-                    authorName: currentUserName,
-                    authorHandle: currentUserHandle,
-                    athleteType: currentUserAthleteType,
-                    authorProfileImageData: currentUserProfile?.profileImageData,
-                    isPublicAuthor: currentUserProfile?.isPublicProfile ?? true,
-                    onPost: { newPost in
-                        postStore.addPost(newPost)
+                NavigationStack {
+                    CreatePostView { newPost in
+                        postStore.addPost(
+                            caption: newPost.caption,
+                            workoutTag: newPost.workoutTag,
+                            mediaItems: newPost.mediaItems,
+                            athleteType: newPost.athleteType,
+                            audioTrack: newPost.audioTrack
+                        )
                     }
+                }
+            }
+            .sheet(isPresented: $showingDirectMessages) {
+                DirectMessagesListView()
+            }
+            .sheet(isPresented: $showingPrivacySettings) {
+                PrivacyAndSecurityView()
+            }
+            .sheet(item: Binding(
+                get: {
+                    if let handle = selectedAthleteForProfile {
+                        return ProfileHandleWrapper(handle: handle)
+                    }
+                    return nil
+                },
+                set: { selectedAthleteForProfile = $0?.handle }
+            )) { wrapper in
+                OtherUserProfileView(athleteHandle: wrapper.handle)
+            }
+            .sheet(item: $selectedPostDetail) { post in
+                PostDetailModalSheet(post: post)
+            }
+            .fullScreenCover(item: $activeReelPost) { reel in
+                TikTokReelPlayerModal(
+                    post: reel,
+                    onDismiss: { activeReelPost = nil }
                 )
             }
-            .sheet(item: $shareSheetItem) { item in
-                ShareActivitySheet(text: item.text)
+        }
+    }
+
+    // MARK: - Community Filter Header
+    private var communityFilterHeader: some View {
+        HStack(spacing: 8) {
+            ForEach(FeedPostStore.CommunityFilter.allCases) { filter in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        postStore.communityFilter = filter
+                    }
+                } label: {
+                    Text(filter.rawValue)
+                        .font(AppTheme.headlineFont)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            postStore.communityFilter == filter
+                                ? AppTheme.accent
+                                : AppTheme.surface
+                        )
+                        .foregroundStyle(
+                            postStore.communityFilter == filter
+                                ? AppTheme.inverseText
+                                : AppTheme.textSecondary
+                        )
+                        .clipShape(Capsule())
+                }
             }
-            .fullScreenCover(item: $activeReelPost) { reelPost in
-                if let index = postStore.posts.firstIndex(where: { $0.id == reelPost.id }) {
-                    TikTokReelPlayerModal(
-                        post: $postStore.posts[index],
-                        onAddComment: { newComment in
-                            postStore.posts[index].comments.append(newComment)
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+
+    // MARK: - Athlete Filter Pills
+    private var athleteFilterPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        postStore.filteredAthleteType = nil
+                    }
+                } label: {
+                    Text("All Disciplines")
+                        .font(AppTheme.captionFont.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            postStore.filteredAthleteType == nil
+                                ? AppTheme.surfaceElevated
+                                : AppTheme.surface
+                        )
+                        .foregroundStyle(
+                            postStore.filteredAthleteType == nil
+                                ? AppTheme.primary
+                                : AppTheme.textSecondary
+                        )
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(Color.white.opacity(postStore.filteredAthleteType == nil ? 0.2 : 0.05), lineWidth: 1)
+                        )
+                }
+
+                ForEach(AthleteType.allCases, id: \.self) { type in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            postStore.filteredAthleteType = (postStore.filteredAthleteType == type) ? nil : type
                         }
-                    )
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: type.iconName)
+                                .font(.system(size: 11))
+                            Text(type.rawValue)
+                                .font(AppTheme.captionFont.weight(.semibold))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            postStore.filteredAthleteType == type
+                                ? type.badgeColor.opacity(0.2)
+                                : AppTheme.surface
+                        )
+                        .foregroundStyle(
+                            postStore.filteredAthleteType == type
+                                ? type.badgeColor
+                                : AppTheme.textSecondary
+                        )
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(postStore.filteredAthleteType == type ? type.badgeColor : Color.white.opacity(0.05), lineWidth: 1)
+                        )
+                    }
                 }
             }
         }
-        .preferredColorScheme(AppAppearance(rawValue: UserDefaults.standard.string(forKey: "solxce_app_appearance") ?? "")?.colorScheme)
+    }
+
+    // MARK: - Empty Feed State
+    private var emptyFeedView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.2.slash")
+                .font(.system(size: 40))
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.5))
+                .padding(.top, 40)
+
+            Text("No Posts in Feed")
+                .font(AppTheme.headlineFont)
+                .foregroundStyle(AppTheme.primary)
+
+            Text(postStore.communityFilter == .following
+                 ? "You aren't following any athletes yet or your followed accounts haven't posted."
+                 : "No posts match the active discipline and privacy filters.")
+                .font(AppTheme.captionFont)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
+
+            if postStore.communityFilter == .following {
+                Button {
+                    postStore.communityFilter = .forYou
+                } label: {
+                    Text("Explore For You")
+                        .font(AppTheme.captionFont.weight(.bold))
+                        .foregroundStyle(AppTheme.inverseText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(AppTheme.accent)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 8)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+    }
+
+    // MARK: - Floating Create Button
+    private var createPostFloatingButton: some View {
+        Button {
+            showingCreatePostSheet = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 16, weight: .bold))
+                Text("Log Post")
+                    .font(AppTheme.headlineFont)
+            }
+            .foregroundStyle(AppTheme.inverseText)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(AppTheme.accent)
+            .clipShape(Capsule())
+            .shadow(color: AppTheme.accent.opacity(0.4), radius: 10, x: 0, y: 4)
+        }
+        .padding(.trailing, AppTheme.Spacing.screenMargin)
+        .padding(.bottom, 20)
     }
 }
 
-// MARK: - Super Simple 9:16 Aspect Post Card with Multi-Picture Carousel & Video
-struct SimplePostCardView: View {
-    @Binding var post: AthletePost
-    var onShare: () -> Void
-    var onOpenReel: () -> Void
+// Wrapper for Identifiable string
+struct ProfileHandleWrapper: Identifiable {
+    var id: String { handle }
+    let handle: String
+}
+
+// MARK: - Post Card View
+struct PostCardView: View {
+    @State var post: AthletePost
+    let onAuthorTap: () -> Void
+    let onOpenReel: () -> Void
+    let onOpenComments: () -> Void
 
     @State private var selectedMediaIndex: Int = 0
-    @State private var isCommenting: Bool = false
-    @State private var commentText: String = ""
-    @State private var showHeartBurst: Bool = false
+    @State private var showHeartBurst = false
+    @State private var showingShareSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 9:16 Aspect Media Card Viewport with Swipeable Multi-Picture Carousel or Single Video
+            // 9:16 Aspect Media Card Viewport
             ZStack(alignment: .bottom) {
-                // Swipeable Media Content
                 if post.mediaItems.count > 1 {
-                    // Multi-picture horizontal swipeable carousel
                     TabView(selection: $selectedMediaIndex) {
                         ForEach(Array(post.mediaItems.enumerated()), id: \.element.id) { index, item in
                             mediaSlideView(for: item)
@@ -224,12 +319,10 @@ struct SimplePostCardView: View {
                     .aspectRatio(9.0 / 16.0, contentMode: .fit)
                     .clipped()
                 } else if let singleItem = post.mediaItems.first {
-                    // Single media item (Photo or Video)
                     mediaSlideView(for: singleItem)
                         .aspectRatio(9.0 / 16.0, contentMode: .fit)
                         .clipped()
                 } else {
-                    // Fallback gradient canvas
                     LinearGradient(
                         colors: post.gradientColors,
                         startPoint: .topLeading,
@@ -239,43 +332,45 @@ struct SimplePostCardView: View {
                     .clipped()
                 }
 
-                // Top: Author Info + Music on Top + Carousel Index Badge
+                // Top: Author Info Bar
                 VStack(spacing: 0) {
                     HStack(spacing: 10) {
-                        // Author Avatar & Handle
-                        HStack(spacing: 8) {
-                            AthleteAvatarView(
-                                imageData: post.authorProfileImageData,
-                                symbolFallback: post.athleteType.iconName,
-                                initials: post.authorName,
-                                ringColor: post.athleteType.badgeColor,
-                                size: 34,
-                                showCameraBadge: false,
-                                isPublic: post.isPublicAuthor
-                            )
+                        Button {
+                            onAuthorTap()
+                        } label: {
+                            HStack(spacing: 8) {
+                                AthleteAvatarView(
+                                    imageData: post.authorProfileImageData,
+                                    symbolFallback: post.athleteType.iconName,
+                                    initials: post.authorName,
+                                    ringColor: post.athleteType.badgeColor,
+                                    size: 34,
+                                    showCameraBadge: false,
+                                    isPublic: post.isPublicAuthor
+                                )
 
-                            VStack(alignment: .leading, spacing: 1) {
-                                HStack(spacing: 4) {
-                                    Text(post.authorName)
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.white)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    HStack(spacing: 4) {
+                                        Text(post.authorName)
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(.white)
 
-                                    if post.isPublicAuthor {
-                                        Image(systemName: "globe.americas.fill")
-                                            .font(.system(size: 9))
-                                            .foregroundColor(AppTheme.primary)
+                                        if post.isPublicAuthor {
+                                            Image(systemName: "checkmark.seal.fill")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(AppTheme.accent)
+                                        }
                                     }
-                                }
 
-                                Text("@\(post.authorHandle)")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    Text("@\(post.authorHandle)")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
                             }
                         }
 
                         Spacer()
 
-                        // Multi-picture page badge (e.g., "1/3")
                         if post.mediaItems.count > 1 {
                             HStack(spacing: 4) {
                                 Image(systemName: "square.stack.3d.forward.dottedline.fill")
@@ -288,9 +383,6 @@ struct SimplePostCardView: View {
                             .background(Color.black.opacity(0.65))
                             .foregroundColor(.white)
                             .clipShape(Capsule())
-                            .overlay(
-                                Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.5)
-                            )
                         } else if post.mediaType == .video {
                             HStack(spacing: 4) {
                                 Image(systemName: "video.fill")
@@ -304,32 +396,6 @@ struct SimplePostCardView: View {
                             .foregroundColor(AppTheme.primary)
                             .clipShape(Capsule())
                         }
-
-                        // Music on Top Bar / Pill
-                        if let audio = post.audioTrack {
-                            HStack(spacing: 5) {
-                                Image(systemName: audio.platform.iconName)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(audio.platform.brandColor)
-
-                                EqualizerAnimationView()
-                                    .frame(width: 12, height: 10)
-                                    .foregroundColor(AppTheme.primary)
-
-                                Text("\(audio.title) · \(audio.artist)")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                                    .frame(maxWidth: 110, alignment: .leading)
-                            }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(Color.black.opacity(0.65))
-                            .clipShape(Capsule())
-                            .overlay(
-                                Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                            )
-                        }
                     }
                     .padding(.horizontal, 14)
                     .padding(.top, 14)
@@ -337,7 +403,7 @@ struct SimplePostCardView: View {
                     Spacer()
                 }
 
-                // Bottom Gradient Scrim for readable Caption overlay
+                // Bottom Gradient Scrim
                 LinearGradient(
                     colors: [Color.clear, Color.black.opacity(0.85)],
                     startPoint: .top,
@@ -345,16 +411,14 @@ struct SimplePostCardView: View {
                 )
                 .frame(height: 130)
 
-                // Bottom Caption Overlay + Page Dots
+                // Bottom Caption & Tags
                 VStack(alignment: .leading, spacing: 6) {
-                    // Multi-picture dots indicator
                     if post.mediaItems.count > 1 {
                         HStack(spacing: 5) {
                             ForEach(0..<post.mediaItems.count, id: \.self) { dotIdx in
                                 Capsule()
                                     .fill(dotIdx == selectedMediaIndex ? AppTheme.primary : Color.white.opacity(0.4))
                                     .frame(width: dotIdx == selectedMediaIndex ? 16 : 5, height: 5)
-                                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMediaIndex)
                             }
                         }
                         .padding(.bottom, 2)
@@ -381,7 +445,6 @@ struct SimplePostCardView: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 14)
 
-                // Double Tap Heart Animation
                 if showHeartBurst {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 72))
@@ -412,9 +475,8 @@ struct SimplePostCardView: View {
                 onOpenReel()
             }
 
-            // Just the Likes, Comments, and Share Button
+            // Likes, Comments, Author Profile, and Share
             HStack(spacing: 24) {
-                // Like Button
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                         post.isLiked.toggle()
@@ -423,185 +485,158 @@ struct SimplePostCardView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(post.isLiked ? AppTheme.accent : AppTheme.text)
+                            .font(.system(size: 17))
+                            .foregroundColor(post.isLiked ? Color(hex: "#FF3B5C") : AppTheme.primary)
                         Text("\(post.likesCount)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(AppTheme.text)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(AppTheme.primary)
                     }
                 }
-                .buttonStyle(.plain)
 
-                // Comment Button
                 Button {
-                    withAnimation(.spring()) {
-                        isCommenting.toggle()
-                    }
+                    onOpenComments()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "bubble.right")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(AppTheme.text)
-                        Text("\(post.comments.count)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(AppTheme.text)
+                            .font(.system(size: 16))
+                            .foregroundColor(AppTheme.primary)
+                        Text("\(post.commentsCount)")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(AppTheme.primary)
                     }
                 }
-                .buttonStyle(.plain)
 
-                // Share Button
                 Button {
-                    onShare()
+                    onAuthorTap()
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(AppTheme.text)
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 17))
+                        .foregroundColor(AppTheme.primary)
                 }
-                .buttonStyle(.plain)
 
                 Spacer()
-            }
-            .padding(.horizontal, 4)
-            .padding(.top, 12)
 
-            // Inline quick comments section
-            if isCommenting {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider().background(AppTheme.hairline)
-
-                    ForEach(post.comments) { comment in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text(comment.author)
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.text)
-                            Text(comment.text)
-                                .font(.system(size: 12))
-                                .foregroundColor(AppTheme.textSecondary)
-                            Spacer()
-                            Text(comment.timeAgo)
-                                .font(.system(size: 10))
-                                .foregroundColor(AppTheme.textMuted)
-                        }
-                    }
-
-                    HStack(spacing: 8) {
-                        TextField("Add a comment...", text: $commentText)
-                            .font(.system(size: 13))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(AppTheme.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                        Button {
-                            guard !commentText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                            let newComment = PostComment(
-                                author: "you",
-                                athleteType: post.athleteType,
-                                text: commentText,
-                                timeAgo: "Just now"
-                            )
-                            post.comments.append(newComment)
-                            commentText = ""
-                        } label: {
-                            Text("Post")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(AppTheme.primary)
-                        }
-                    }
-                    .padding(.top, 4)
+                Button {
+                    showingShareSheet = true
+                } label: {
+                    Image(systemName: "paperplane")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppTheme.primary)
                 }
-                .padding(.top, 8)
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            .padding(.horizontal, 10)
+            .padding(.top, 12)
+            .padding(.bottom, 6)
         }
+        .padding(.bottom, 6)
     }
 
-    // MARK: - Slide View for Individual Carousel Item or Video
+    @ViewBuilder
     private func mediaSlideView(for item: PostMediaItem) -> some View {
-        ZStack {
-            LinearGradient(
-                colors: item.gradientColors.isEmpty ? post.gradientColors : item.gradientColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        if let data = item.imageData, let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            ZStack {
+                LinearGradient(
+                    colors: item.placeholderGradient,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
 
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(post.athleteType.badgeColor.opacity(0.18))
-                        .frame(width: 84, height: 84)
-
-                    Image(systemName: item.iconName)
-                        .font(.system(size: 40, weight: .bold))
-                        .foregroundColor(post.athleteType.badgeColor)
-                }
-
-                if let sub = item.subtitle, !sub.isEmpty {
-                    Text(sub)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white.opacity(0.85))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.55))
-                        .clipShape(Capsule())
-                }
-
-                if let sticker = post.textOverlay, !sticker.isEmpty {
-                    TikTokTextBadgeView(
-                        text: sticker,
-                        fontStyle: .neon,
-                        highlightMode: .filled,
-                        textColor: Color(hex: "#CCFF00"),
-                        fontSize: 14
-                    )
-                }
+                Image(systemName: item.type == .video ? "play.circle.fill" : "dumbbell.fill")
+                    .font(.system(size: 42))
+                    .foregroundColor(Color.white.opacity(0.8))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
-// MARK: - Equalizer Sound Animation
-struct EqualizerAnimationView: View {
-    @State private var animating = false
+// MARK: - Post Detail Modal Sheet
+struct PostDetailModalSheet: View {
+    @State var post: AthletePost
+    @Environment(\.dismiss) private var dismiss
+    @State private var commentText = ""
+    @State private var comments: [PostComment] = [
+        PostComment(authorName: "Marcus Vance", authorHandle: "marcus_lifts", text: "Incredible tempo and lockouts! ⚡", timeAgo: "1h ago"),
+        PostComment(authorName: "Elena Rostova", authorHandle: "elena_runs", text: "Consistency at its highest level.", timeAgo: "30m ago")
+    ]
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 2) {
-            bar(height: animating ? 10 : 3, delay: 0.0)
-            bar(height: animating ? 6 : 8, delay: 0.15)
-            bar(height: animating ? 10 : 4, delay: 0.3)
+        NavigationStack {
+            VStack(spacing: 0) {
+                List {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(post.workoutTag)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(AppTheme.accent)
+                            Text(post.caption)
+                                .font(AppTheme.bodyFont)
+                                .foregroundStyle(AppTheme.primary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    Section(header: Text("Athlete Comments (\(comments.count))").foregroundStyle(AppTheme.textSecondary)) {
+                        ForEach(comments) { comment in
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text("@\(comment.authorHandle)")
+                                        .font(AppTheme.headlineFont)
+                                        .foregroundStyle(AppTheme.primary)
+                                    Spacer()
+                                    Text(comment.timeAgo)
+                                        .font(AppTheme.captionFont)
+                                        .foregroundStyle(AppTheme.textSecondary)
+                                }
+                                Text(comment.text)
+                                    .font(AppTheme.bodyFont)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+
+                // Comment input
+                HStack(spacing: 8) {
+                    TextField("Add a comment for @\(post.authorHandle)...", text: $commentText)
+                        .font(AppTheme.bodyFont)
+                        .foregroundStyle(AppTheme.primary)
+
+                    if !commentText.isEmpty {
+                        Button("Post") {
+                            comments.append(
+                                PostComment(
+                                    authorName: "Alex Rivera",
+                                    authorHandle: "solxce_athlete",
+                                    text: commentText,
+                                    timeAgo: "Just now"
+                                )
+                            )
+                            commentText = ""
+                        }
+                        .font(AppTheme.headlineFont)
+                        .foregroundStyle(AppTheme.accent)
+                    }
+                }
+                .padding(12)
+                .background(AppTheme.surfaceElevated)
+                .clipShape(Capsule())
+                .padding()
+            }
+            .background(AppTheme.ground.ignoresSafeArea())
+            .navigationTitle("Comments")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
         }
-        .onAppear {
-            animating = true
-        }
     }
-
-    private func bar(height: CGFloat, delay: Double) -> some View {
-        RoundedRectangle(cornerRadius: 1)
-            .fill(AppTheme.primary)
-            .frame(width: 2, height: height)
-            .animation(
-                Animation.easeInOut(duration: 0.4)
-                    .repeatForever(autoreverses: true)
-                    .delay(delay),
-                value: animating
-            )
-    }
-}
-
-// MARK: - Share Item Wrapper
-struct ShareTextItem: Identifiable {
-    let id = UUID()
-    let text: String
-}
-
-// MARK: - Native Share Sheet Helper
-struct ShareActivitySheet: UIViewControllerRepresentable {
-    let text: String
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [text], applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
