@@ -180,6 +180,9 @@ public enum AppTheme {
         dark: UIColor(red: 0.110, green: 0.110, blue: 0.110, alpha: 1.0)
     )
 
+    /// Backward compatibility alias for elevated / raised surfaces
+    public static var elevated: Color { surfaceRaised }
+
     /// Input fields & subtle chips (#222224)
     public static let field = dynamicColor(
         light: UIColor(red: 0.90, green: 0.90, blue: 0.93, alpha: 1.0),
@@ -237,6 +240,14 @@ public enum AppTheme {
 
     // MARK: - Radii
     public enum Radii {
+        public static let button: CGFloat = 12
+        public static let card: CGFloat = 14
+        public static let sheet: CGFloat = 20
+        public static let tag: CGFloat = 8
+    }
+
+    // Backward compatibility alias for corner radius constants
+    public enum CornerRadius {
         public static let button: CGFloat = 12
         public static let card: CGFloat = 14
         public static let sheet: CGFloat = 20
