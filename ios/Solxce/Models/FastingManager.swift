@@ -155,11 +155,14 @@ final class FastingManager: ObservableObject {
 
     // MARK: - Notifications
     func checkNotificationStatus() {
+        NotificationManager.shared.checkAuthorization()
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             DispatchQueue.main.async {
-                if settings.authorizationStatus == .authorized {
+                if settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional {
+                    self.notificationsEnabled = true
                     self.notificationStatusMessage = "Notifications Active"
                 } else {
+                    self.notificationsEnabled = false
                     self.notificationStatusMessage = "Enable for Eating Alerts"
                 }
             }
@@ -167,70 +170,30 @@ final class FastingManager: ObservableObject {
     }
 
     func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            DispatchQueue.main.async {
-                self.notificationsEnabled = granted
-                if granted {
-                    self.notificationStatusMessage = "Notifications Active"
-                    if self.isFastingActive {
-                        self.scheduleFastingNotifications()
-                    }
+        NotificationManager.shared.requestAuthorization { granted in
+            self.notificationsEnabled = granted
+            if granted {
+                self.notificationStatusMessage = "Notifications Active"
+                if self.isFastingActive {
+                    self.scheduleFastingNotifications()
                 }
+            } else {
+                self.notificationStatusMessage = "Enable for Eating Alerts"
             }
         }
     }
 
     func scheduleFastingNotifications() {
-        guard notificationsEnabled, isFastingActive else { return }
-
-        cancelFastingNotifications()
-
-        let center = UNUserNotificationCenter.current()
-
-        // 1. Notification: Eating Window Opens
-        let eatOpenContent = UNMutableNotificationContent()
-        eatOpenContent.title = "🍽️ Eating Window is OPEN!"
-        eatOpenContent.body = "Great job! You completed your \(targetFastHours)-hour fast. You can now break your fast and log your meal in Solxce."
-        eatOpenContent.sound = .default
-
-        let eatOpenTriggerDate = fastTargetEndTime
-        let timeUntilEatOpen = max(5, eatOpenTriggerDate.timeIntervalSinceNow)
-        let eatOpenTrigger = UNTimeIntervalNotificationTrigger(timeInterval: timeUntilEatOpen, repeats: false)
-        let eatOpenRequest = UNNotificationRequest(identifier: "solxce_eat_window_open", content: eatOpenContent, trigger: eatOpenTrigger)
-
-        center.add(eatOpenRequest)
-
-        // 2. Notification: Eating Window Closing in 30 Mins
-        let closeSoonContent = UNMutableNotificationContent()
-        closeSoonContent.title = "⏳ Eating Window Closes in 30 Mins"
-        closeSoonContent.body = "Finish your hydration & nutrition goals before your new fast starts."
-        closeSoonContent.sound = .default
-
-        let closeSoonDate = eatingWindowEndTime.addingTimeInterval(-1800)
-        let timeUntilCloseSoon = max(10, closeSoonDate.timeIntervalSinceNow)
-        if timeUntilCloseSoon > 0 {
-            let closeSoonTrigger = UNTimeIntervalNotificationTrigger(timeInterval: timeUntilCloseSoon, repeats: false)
-            let closeSoonRequest = UNNotificationRequest(identifier: "solxce_eat_window_warning", content: closeSoonContent, trigger: closeSoonTrigger)
-            center.add(closeSoonRequest)
-        }
-
-        // 3. Notification: Fast Starts Now
-        let fastStartContent = UNMutableNotificationContent()
-        fastStartContent.title = "⚡ Fasting Window Started"
-        fastStartContent.body = "Your eating window has closed. Stay hydrated with water, black coffee, or electrolytes!"
-        fastStartContent.sound = .default
-
-        let timeUntilFastStart = max(15, eatingWindowEndTime.timeIntervalSinceNow)
-        let fastStartTrigger = UNTimeIntervalNotificationTrigger(timeInterval: timeUntilFastStart, repeats: false)
-        let fastStartRequest = UNNotificationRequest(identifier: "solxce_fast_window_start", content: fastStartContent, trigger: fastStartTrigger)
-        center.add(fastStartRequest)
+        guard isFastingActive else { return }
+        
+        NotificationManager.shared.scheduleFastingCompletion(
+            targetEndTime: fastTargetEndTime,
+            fastingHours: targetFastHours,
+            eatingWindowEndTime: eatingWindowEndTime
+        )
     }
 
     func cancelFastingNotifications() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [
-            "solxce_eat_window_open",
-            "solxce_eat_window_warning",
-            "solxce_fast_window_start"
-        ])
+        NotificationManager.shared.cancelFastingNotifications()
     }
 }
