@@ -131,9 +131,24 @@ struct FeedView: View {
     @State private var shareSheetItem: ShareTextItem? = nil
     @State private var selectedOtherAthleteHandle: String? = nil
     @State private var showingDirectMessages = false
+    @State private var searchText = ""
+    @State private var isSearching = false
 
     private var unblockedPosts: [AthletePost] {
         postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
+    }
+
+    private var matchingAthletes: [AthletePublicProfile] {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return relationshipStore.directory.filter { $0.handle != currentUserHandle }
+        }
+        let query = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
+        return relationshipStore.directory.filter { athlete in
+            athlete.handle != currentUserHandle &&
+            (athlete.handle.lowercased().contains(query) ||
+             athlete.displayName.lowercased().contains(query) ||
+             athlete.athleteType.rawValue.lowercased().contains(query))
+        }
     }
 
     private func handleShare(for post: AthletePost) {
@@ -143,29 +158,15 @@ struct FeedView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 24) {
-                    ForEach(unblockedPosts) { post in
-                        if let index = postStore.posts.firstIndex(where: { $0.id == post.id }) {
-                            SimplePostCardView(
-                                post: $postStore.posts[index],
-                                onTapAuthor: {
-                                    if post.authorHandle != currentUserHandle {
-                                        selectedOtherAthleteHandle = post.authorHandle
-                                    }
-                                },
-                                onShare: {
-                                    handleShare(for: post)
-                                },
-                                onOpenReel: {
-                                    activeReelPost = post
-                                }
-                            )
-                        }
-                    }
+            VStack(spacing: 0) {
+                // Athlete Username Search Bar
+                searchBarHeader
+
+                if isSearching || !searchText.isEmpty {
+                    searchResultsView
+                } else {
+                    feedContentView
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
             }
             .background(AppTheme.ground.ignoresSafeArea())
             .navigationTitle("")
@@ -246,9 +247,235 @@ struct FeedView: View {
         }
         .preferredColorScheme(AppAppearance(rawValue: UserDefaults.standard.string(forKey: "solxce_app_appearance") ?? "")?.colorScheme)
     }
+
+    // MARK: - Search Bar Header
+    private var searchBarHeader: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppTheme.textSecondary)
+
+                TextField("Search athletes by @username, name...", text: $searchText)
+                    .font(AppTheme.bodyFont)
+                    .foregroundColor(AppTheme.textPrimary)
+                    .autocorrectionDisabled(true)
+                    .textInputAutocapitalization(.never)
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isSearching = true
+                        }
+                    }
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppTheme.textTertiary)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(AppTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSearching ? AppTheme.primary.opacity(0.4) : AppTheme.surfaceRaised, lineWidth: 1)
+            )
+
+            if isSearching || !searchText.isEmpty {
+                Button("Cancel") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        searchText = ""
+                        isSearching = false
+                        hideKeyboard()
+                    }
+                }
+                .font(AppTheme.bodyFont)
+                .foregroundColor(AppTheme.primary)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Search Results View
+    private var searchResultsView: some View {
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                if matchingAthletes.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.slash.fill")
+                            .font(.system(size: 38))
+                            .foregroundColor(AppTheme.textTertiary)
+                            .padding(.top, 40)
+
+                        Text("No athletes found")
+                            .font(AppTheme.titleFont)
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        Text("Try searching by handle (e.g. @marcus_lift, @elena_runs) or sport discipline.")
+                            .font(AppTheme.subheadlineFont)
+                            .foregroundColor(AppTheme.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                } else {
+                    HStack {
+                        Text(searchText.isEmpty ? "SUGGESTED ATHLETES" : "SEARCH RESULTS (\(matchingAthletes.count))")
+                            .font(AppTheme.metaFont)
+                            .foregroundColor(AppTheme.textTertiary)
+                            .tracking(1.2)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                    ForEach(matchingAthletes) { athlete in
+                        AthleteSearchResultRow(
+                            athlete: athlete,
+                            onSelect: {
+                                selectedOtherAthleteHandle = athlete.handle
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    // MARK: - Feed Content View
+    private var feedContentView: some View {
+        ScrollView {
+            LazyVStack(spacing: 24) {
+                ForEach(unblockedPosts) { post in
+                    if let index = postStore.posts.firstIndex(where: { $0.id == post.id }) {
+                        SimplePostCardView(
+                            post: $postStore.posts[index],
+                            onTapAuthor: {
+                                if post.authorHandle != currentUserHandle {
+                                    selectedOtherAthleteHandle = post.authorHandle
+                                }
+                            },
+                            onShare: {
+                                handleShare(for: post)
+                            },
+                            onOpenReel: {
+                                activeReelPost = post
+                            }
+                        )
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+        }
+    }
+
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
 }
 
-// MARK: - Super Simple 9:16 Aspect Post Card with Multi-Picture Carousel & Video
+// MARK: - Athlete Search Result Row
+struct AthleteSearchResultRow: View {
+    let athlete: AthletePublicProfile
+    let onSelect: () -> Void
+    @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
+
+    var isFollowing: Bool {
+        relationshipStore.isFollowing(handle: athlete.handle)
+    }
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 12) {
+                // Avatar
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.surfaceRaised)
+                        .frame(width: 46, height: 46)
+
+                    if let image = athlete.avatarImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 46, height: 46)
+                            .clipShape(Circle())
+                    } else {
+                        Text(athlete.displayName.prefix(1))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(AppTheme.primary)
+                    }
+                }
+
+                // Name & Handle & Archetype
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(athlete.displayName)
+                            .font(AppTheme.headlineFont)
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        if athlete.isVerified {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(AppTheme.primary)
+                        }
+                    }
+
+                    HStack(spacing: 6) {
+                        Text("@\(athlete.handle)")
+                            .font(AppTheme.subheadlineFont)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppTheme.textTertiary)
+
+                        Text(athlete.athleteType.rawValue)
+                            .font(.system(size: 11, weight: .semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(AppTheme.surfaceRaised)
+                            .foregroundColor(AppTheme.textSecondary)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Spacer()
+
+                // Follow / Following Quick Action Button
+                Button {
+                    relationshipStore.toggleFollow(handle: athlete.handle)
+                } label: {
+                    Text(isFollowing ? "Following" : "Follow")
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(isFollowing ? AppTheme.surfaceRaised : AppTheme.primary)
+                        .foregroundColor(isFollowing ? AppTheme.textPrimary : .black)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(AppTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(AppTheme.surfaceRaised, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
 struct SimplePostCardView: View {
     @Binding var post: AthletePost
     var onTapAuthor: (() -> Void)? = nil
