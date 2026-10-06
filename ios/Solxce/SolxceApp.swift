@@ -77,11 +77,7 @@ struct ContentView: View {
 
                 FeedView()
                     .tabItem {
-                        Label {
-                            Text("Feed")
-                        } icon: {
-                            Image("FeedCustomIcon")
-                        }
+                        Image("FeedCustomIcon")
                     }
                     .tag(2)
 
