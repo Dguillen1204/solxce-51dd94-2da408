@@ -5,7 +5,13 @@ import AVFoundation
 
 struct CreateMediaPostSheet: View {
     @Environment(\.dismiss) private var dismiss
-    var onPublish: (AthletePost) -> Void
+    var authorName: String = "You"
+    var authorHandle: String = "athlete_you"
+    var athleteType: AthleteType = .bodybuilder
+    var authorProfileImageData: Data? = nil
+    var isPublicAuthor: Bool = true
+    var onPost: ((AthletePost) -> Void)? = nil
+    var onPublish: ((AthletePost) -> Void)? = nil
 
     // Form inputs
     @State private var caption: String = ""
