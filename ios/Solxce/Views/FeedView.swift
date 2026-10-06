@@ -129,13 +129,6 @@ struct FeedView: View {
     @State private var activeReelPost: AthletePost? = nil
     @State private var showingCreatePostSheet = false
     @State private var shareSheetItem: ShareTextItem? = nil
-    @State private var selectedOtherAthleteHandle: String? = nil
-    @State private var showingDirectMessages = false
-    @State private var showingAthleteSearch = false
-
-    private var unblockedPosts: [AthletePost] {
-        postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
-    }
 
     private func handleShare(for post: AthletePost) {
         let text = "Check out @\(post.authorHandle)'s workout on Solxce: \(post.caption)"
@@ -153,65 +146,17 @@ struct FeedView: View {
                     SolxceLogoView(size: 42, showGlow: false)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            showingAthleteSearch = true
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
+                    Button {
+                        showingCreatePostSheet = true
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("New Post")
+                                .font(AppTheme.headlineFont)
                         }
-
-                        Button {
-                            showingDirectMessages = true
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bubble.left.and.bubble.right.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.white)
-
-                                if relationshipStore.conversations.contains(where: { $0.unreadCount > 0 }) {
-                                    Circle()
-                                        .fill(AppTheme.primary)
-                                        .frame(width: 8, height: 8)
-                                        .offset(x: 3, y: -3)
-                                }
-                            }
-                        }
-
-                        Button {
-                            showingCreatePostSheet = true
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text("New Post")
-                                    .font(AppTheme.headlineFont)
-                            }
-                            .foregroundColor(AppTheme.primary)
-                        }
+                        .foregroundColor(AppTheme.primary)
                     }
-                }
-            }
-            .sheet(isPresented: $showingAthleteSearch) {
-                AthleteSearchModalSheet(
-                    onSelectAthlete: { handle in
-                        showingAthleteSearch = false
-                        if handle != currentUserHandle {
-                            selectedOtherAthleteHandle = handle
-                        }
-                    }
-                )
-            }
-            .sheet(isPresented: $showingDirectMessages) {
-                DirectMessagesInboxView()
-            }
-            .sheet(isPresented: Binding(
-                get: { selectedOtherAthleteHandle != nil },
-                set: { if !$0 { selectedOtherAthleteHandle = nil } }
-            )) {
-                if let handle = selectedOtherAthleteHandle {
-                    OtherUserProfileView(handle: handle)
                 }
             }
             .sheet(isPresented: $showingCreatePostSheet) {
@@ -247,15 +192,11 @@ struct FeedView: View {
     private var feedContentView: some View {
         ScrollView {
             LazyVStack(spacing: 24) {
-                ForEach(unblockedPosts) { post in
+                ForEach(postStore.posts) { post in
                     if let index = postStore.posts.firstIndex(where: { $0.id == post.id }) {
                         SimplePostCardView(
                             post: $postStore.posts[index],
-                            onTapAuthor: {
-                                if post.authorHandle != currentUserHandle {
-                                    selectedOtherAthleteHandle = post.authorHandle
-                                }
-                            },
+                            onTapAuthor: nil,
                             onShare: {
                                 handleShare(for: post)
                             },
