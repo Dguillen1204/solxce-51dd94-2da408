@@ -19,6 +19,7 @@ struct RunLogView: View {
     @StateObject private var tracker = LocationRunTracker()
     @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var healthKit = HealthKitService.shared
+    @ObservedObject private var lockScreenManager = RunLiveActivityManager.shared
     
     @State private var mode: RunTrackingMode = .live
     @State private var runTitle: String = "Outdoor Run"
@@ -26,6 +27,7 @@ struct RunLogView: View {
     @State private var showFinishConfirmation: Bool = false
     @State private var selectedHistoricalRun: RunEntry? = nil
     @State private var showingWatchHub: Bool = false
+    @State private var showingLockScreenSimulator: Bool = false
     
     // Map View Camera
     @State private var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
@@ -78,6 +80,9 @@ struct RunLogView: View {
                 }
                 .sheet(isPresented: $showingWatchHub) {
                     AppleWatchHubView()
+                }
+                .sheet(isPresented: $showingLockScreenSimulator) {
+                    RunLockScreenSimulatorSheet()
                 }
                 .onChange(of: tracker.isTracking) { _, isTracking in
                     handleTrackingStateChange(isTracking: isTracking)
@@ -180,8 +185,20 @@ struct RunLogView: View {
     }
 
     private func handleTrackingStateChange(isTracking: Bool) {
+        let hr: Double = watchManager.liveTelemetry.heartRateBpm > 0 ? watchManager.liveTelemetry.heartRateBpm : (healthKit.currentHeartRateBpm > 0 ? healthKit.currentHeartRateBpm : 148.0)
+        lockScreenManager.updateMetrics(
+            title: runTitle,
+            distanceMiles: tracker.totalDistanceMiles,
+            elapsedSeconds: tracker.elapsedSeconds,
+            currentPace: tracker.currentPaceFormatted,
+            avgPace: tracker.averagePaceFormatted,
+            heartRate: Int(hr),
+            calories: tracker.estimatedCaloriesBurned,
+            isTracking: isTracking,
+            isPaused: tracker.isPaused,
+            lapNumber: max(1, tracker.laps.count + 1)
+        )
         if isTracking {
-            let hr: Double = watchManager.liveTelemetry.heartRateBpm > 0 ? watchManager.liveTelemetry.heartRateBpm : 148.0
             watchManager.sendWorkoutStateToWatch(
                 isActive: true,
                 title: runTitle,
@@ -199,11 +216,11 @@ struct RunLogView: View {
                 calories: tracker.estimatedCaloriesBurned,
                 pace: "--'--\""
             )
+            lockScreenManager.clearLockScreenActivity()
         }
     }
 
     private func handleElapsedSecondsChange(seconds: Int) {
-        guard tracker.isTracking && !tracker.isPaused && seconds % 2 == 0 else { return }
         let currentTelemetryHr = watchManager.liveTelemetry.heartRateBpm
         let healthKitHr = healthKit.currentHeartRateBpm
         let hr: Double
@@ -214,6 +231,21 @@ struct RunLogView: View {
         } else {
             hr = 152.0
         }
+        
+        lockScreenManager.updateMetrics(
+            title: runTitle,
+            distanceMiles: tracker.totalDistanceMiles,
+            elapsedSeconds: seconds,
+            currentPace: tracker.currentPaceFormatted,
+            avgPace: tracker.averagePaceFormatted,
+            heartRate: Int(hr),
+            calories: tracker.estimatedCaloriesBurned,
+            isTracking: tracker.isTracking,
+            isPaused: tracker.isPaused,
+            lapNumber: max(1, tracker.laps.count + 1)
+        )
+
+        guard tracker.isTracking && !tracker.isPaused && seconds % 2 == 0 else { return }
         watchManager.sendWorkoutStateToWatch(
             isActive: true,
             title: runTitle,
@@ -342,40 +374,11 @@ struct RunLogView: View {
                 }
             }
 
-            // Background & Music Audio Status Indicator
+            // Background & Lock Screen Live Activity Bar
             if tracker.isTracking {
-                HStack(spacing: 8) {
-                    Image(systemName: "lock.shield.fill")
-                        .foregroundStyle(AppTheme.primary)
-                        .font(.system(size: 13))
-                    
-                    Text("Background GPS & Lock Screen Active")
-                        .font(AppTheme.captionFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-
-                    Spacer()
-
-                    // Audio coaching / music mixing toggle
-                    Button(action: {
-                        tracker.voiceAudioCuesEnabled.toggle()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: tracker.voiceAudioCuesEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                                .font(.system(size: 11))
-                            Text(tracker.voiceAudioCuesEnabled ? "Audio Cues On" : "Muted")
-                                .font(AppTheme.eyebrowFont)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(tracker.voiceAudioCuesEnabled ? AppTheme.primary.opacity(0.15) : AppTheme.field)
-                        .foregroundStyle(tracker.voiceAudioCuesEnabled ? AppTheme.primary : AppTheme.textMuted)
-                        .clipShape(Capsule())
-                    }
+                RunLockScreenBannerView {
+                    showingLockScreenSimulator = true
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(AppTheme.field.opacity(0.7))
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
             }
 
             // Big Live Timer Display
