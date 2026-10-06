@@ -3,6 +3,35 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 
+// MARK: - On-Image Text Overlay Style Model
+public struct ImageTextOverlay: Codable, Hashable {
+    public var text: String
+    public var colorHex: String
+    public var fontStyle: String // Modern, Heavy, Neon, Typewriter, Minimal
+    public var alignment: String // Center, Left, Right
+    public var scale: Double
+    public var hasBackground: Bool
+    public var verticalPosition: Double // -1.0 (top) to 1.0 (bottom), 0.0 center
+
+    public init(
+        text: String = "",
+        colorHex: String = "#FFFFFF",
+        fontStyle: String = "Heavy",
+        alignment: String = "Center",
+        scale: Double = 1.0,
+        hasBackground: Bool = true,
+        verticalPosition: Double = 0.0
+    ) {
+        self.text = text
+        self.colorHex = colorHex
+        self.fontStyle = fontStyle
+        self.alignment = alignment
+        self.scale = scale
+        self.hasBackground = hasBackground
+        self.verticalPosition = verticalPosition
+    }
+}
+
 struct CreateMediaPostSheet: View {
     @Environment(\.dismiss) private var dismiss
     var authorName: String = "You"
@@ -13,12 +42,8 @@ struct CreateMediaPostSheet: View {
     var onPost: ((AthletePost) -> Void)? = nil
     var onPublish: ((AthletePost) -> Void)? = nil
 
-    // Form inputs
+    // Form inputs: Just caption, media, music & on-image text
     @State private var caption: String = ""
-    @State private var workoutTag: String = "Chest & Triceps PR"
-    @State private var workoutStats: String = "315 lbs x 3 · 45 mins"
-    @State private var selectedAthleteType: AthleteType = .bodybuilder
-    @State private var selectedPreset: MediaPreset = MediaPreset.defaults[0]
     @State private var activeFilter: PostVideoFilter = .normal
     @State private var selectedAudioTrack: AudioTrack? = AudioTrack.library.first
     @State private var showMusicPicker: Bool = false
@@ -28,12 +53,20 @@ struct CreateMediaPostSheet: View {
     @State private var selectedPhotosPickerItems: [PhotosPickerItem] = []
     @State private var customPickedMediaItems: [PostMediaItem] = []
     @State private var isLoadingMedia: Bool = false
-    @State private var mediaSelectionMode: MediaSourceMode = .presets
 
-    enum MediaSourceMode: String, CaseIterable {
-        case presets = "Workout Presets"
-        case deviceMedia = "Camera Roll / Video"
-    }
+    // On-Image Text Overlay State
+    @State private var showTextEditorModal: Bool = false
+    @State private var imageOverlayText: String = ""
+    @State private var overlayColorHex: String = "#FFFFFF"
+    @State private var overlayFontStyle: String = "Heavy"
+    @State private var overlayHasBackground: Bool = true
+    @State private var overlayPosition: Double = 0.0 // -0.8 (top), 0.0 (center), 0.8 (bottom)
+
+    let availableColors: [String] = [
+        "#FFFFFF", "#CCFF00", "#FF453A", "#FF9F0A", "#30D158", "#0A84FF", "#BF5AF2", "#000000"
+    ]
+
+    let fontStyles: [String] = ["Heavy", "Modern", "Neon", "Typewriter", "Minimal"]
 
     var body: some View {
         NavigationStack {
@@ -42,22 +75,17 @@ struct CreateMediaPostSheet: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Section 1: Media Mode Selector & Visual Canvas / Carousel
-                        mediaSourceSegmentedControl
+                        // Section 1: Main Media Hero Canvas with On-Image Text Overlay
                         mediaHeroViewport
 
                         // Section 2: iPhone Photos & Video Picker Controls
-                        if mediaSelectionMode == .deviceMedia {
-                            deviceMediaPickerToolbar
-                        } else {
-                            presetPickerCarousel
-                        }
+                        deviceMediaPickerToolbar
 
-                        // Section 3: Music & Soundtrack Bar (Hear Before Applying)
+                        // Section 3: On-Image Text Customizer Tool
+                        imageTextEditorSection
+
+                        // Section 4: Music & Soundtrack Bar (Hear Before Applying)
                         musicAttachmentBar
-
-                        // Section 4: Workout Category & Post Details
-                        workoutDetailsSection
 
                         // Section 5: Caption Input
                         captionInputField
@@ -68,7 +96,7 @@ struct CreateMediaPostSheet: View {
                     .padding(.vertical, 16)
                 }
             }
-            .navigationTitle("Create Workout Post")
+            .navigationTitle("New Post")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -87,10 +115,10 @@ struct CreateMediaPostSheet: View {
                             ProgressView()
                                 .tint(.black)
                         } else {
-                            Text("Share")
+                            Text("Post")
                                 .font(.system(size: 15, weight: .black))
                                 .foregroundColor(.black)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 18)
                                 .padding(.vertical, 6)
                                 .background(AppTheme.primary)
                                 .clipShape(Capsule())
@@ -108,6 +136,9 @@ struct CreateMediaPostSheet: View {
                     }
                 )
             }
+            .sheet(isPresented: $showTextEditorModal) {
+                onImageTextCustomizerSheet
+            }
             .onChange(of: selectedPhotosPickerItems) { newItems in
                 loadPickedMediaItems(from: newItems)
             }
@@ -118,56 +149,40 @@ struct CreateMediaPostSheet: View {
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Media Source Mode Switcher
-    private var mediaSourceSegmentedControl: some View {
-        HStack(spacing: 8) {
-            ForEach(MediaSourceMode.allCases, id: \.self) { mode in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        mediaSelectionMode = mode
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: mode == .deviceMedia ? "photo.on.rectangle.angled" : "sparkles.rectangle.stack")
-                            .font(.system(size: 13, weight: .bold))
-                        Text(mode.rawValue)
-                            .font(.system(size: 13, weight: .bold))
-                    }
-                    .foregroundColor(mediaSelectionMode == mode ? .black : AppTheme.specularWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(
-                        mediaSelectionMode == mode
-                            ? AppTheme.primary
-                            : AppTheme.surfaceRaised
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        }
-    }
-
-    // MARK: - Visual Viewport / Carousel Canvas
+    // MARK: - Visual Viewport / Carousel Canvas with Live Text Overlay
     private var mediaHeroViewport: some View {
-        let activeItems = currentActiveMediaItems
+        let activeItems = customPickedMediaItems
 
         return VStack(spacing: 8) {
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(AppTheme.surfaceRaised)
-                    .frame(height: 260)
+                    .frame(height: 290)
 
                 if activeItems.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 42))
-                            .foregroundColor(AppTheme.primary)
-                        Text("Select Photos or Videos from your iPhone")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                        Text("Supports multi-photo carousels and workout clips")
-                            .font(.system(size: 12))
-                            .foregroundColor(AppTheme.silver)
+                    PhotosPicker(
+                        selection: $selectedPhotosPickerItems,
+                        maxSelectionCount: 6,
+                        matching: .any(of: [.images, .videos, .livePhotos, .slomoVideos]),
+                        photoLibrary: .shared()
+                    ) {
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.primary.opacity(0.15))
+                                    .frame(width: 70, height: 70)
+                                Image(systemName: "photo.badge.plus")
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(AppTheme.primary)
+                            }
+                            Text("Tap to Choose Photos or Videos")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("Access your iPhone camera roll & clips")
+                                .font(.system(size: 12))
+                                .foregroundColor(AppTheme.silver)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 } else if activeItems.count == 1, let singleItem = activeItems.first {
                     singleItemCanvas(singleItem)
@@ -189,7 +204,7 @@ struct CreateMediaPostSheet: View {
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .always))
-                    .frame(height: 260)
+                    .frame(height: 290)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                 }
 
@@ -198,6 +213,39 @@ struct CreateMediaPostSheet: View {
                     activeFilter.tintColor
                         .allowsHitTesting(false)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
+                }
+
+                // Render On-Image Text Overlay if added
+                if !imageOverlayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    VStack {
+                        if overlayPosition > 0.3 {
+                            Spacer()
+                        }
+
+                        Button {
+                            showTextEditorModal = true
+                        } label: {
+                            Text(imageOverlayText)
+                                .font(fontForStyle(overlayFontStyle))
+                                .foregroundColor(Color(hex: overlayColorHex))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(
+                                    overlayHasBackground
+                                        ? Color.black.opacity(0.75)
+                                        : Color.clear
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .shadow(color: .black.opacity(0.9), radius: 6, x: 0, y: 2)
+                        }
+                        .padding(.horizontal, 20)
+
+                        if overlayPosition < -0.3 {
+                            Spacer()
+                        }
+                    }
+                    .frame(height: 290)
                 }
 
                 // Soundtrack Attached Badge
@@ -237,7 +285,7 @@ struct CreateMediaPostSheet: View {
                     }
                 }
             }
-            .frame(height: 260)
+            .frame(height: 290)
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(AppTheme.hairline, lineWidth: 1)
@@ -274,11 +322,11 @@ struct CreateMediaPostSheet: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 260)
+                    .frame(height: 290)
                     .clipped()
             } else {
                 LinearGradient(
-                    colors: item.gradientColors,
+                    colors: [Color(hex: "#1A1A24"), Color(hex: "#2D1B36")],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -286,23 +334,17 @@ struct CreateMediaPostSheet: View {
                 VStack(spacing: 10) {
                     Image(systemName: item.iconName)
                         .font(.system(size: 40))
-                        .foregroundColor(selectedAthleteType.badgeColor)
+                        .foregroundColor(AppTheme.primary)
 
                     Text(item.title)
                         .font(.system(size: 16, weight: .black))
                         .foregroundColor(.white)
 
-                    if let subtitle = item.subtitle {
-                        Text(subtitle)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppTheme.silver)
-                    }
-
                     if item.isVideo {
                         HStack(spacing: 4) {
                             Image(systemName: "video.fill")
                                 .font(.system(size: 10))
-                            Text("HD 60 FPS CLIP")
+                            Text("HD VIDEO")
                                 .font(.system(size: 10, weight: .black))
                         }
                         .foregroundColor(.black)
@@ -314,7 +356,7 @@ struct CreateMediaPostSheet: View {
                 }
             }
         }
-        .frame(height: 260)
+        .frame(height: 290)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
@@ -322,7 +364,7 @@ struct CreateMediaPostSheet: View {
     private var deviceMediaPickerToolbar: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Select from Camera Roll")
+                Text("iPhone Photos & Videos")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
 
@@ -347,12 +389,13 @@ struct CreateMediaPostSheet: View {
                     photoLibrary: .shared()
                 ) {
                     HStack(spacing: 8) {
-                        Image(systemName: "photo.stack.fill")
-                            .font(.system(size: 16))
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppTheme.primary)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Choose Photos / Videos")
+                            Text(customPickedMediaItems.isEmpty ? "Choose Photos / Videos" : "Add More Photos / Videos")
                                 .font(.system(size: 13, weight: .bold))
-                            Text("Select up to 6 clips or pictures")
+                            Text("Access Camera Roll, live photos, or clips")
                                 .font(.system(size: 10))
                                 .foregroundColor(AppTheme.silver)
                         }
@@ -415,58 +458,261 @@ struct CreateMediaPostSheet: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    // MARK: - Preset Picker Carousel
-    private var presetPickerCarousel: some View {
+    // MARK: - On-Image Text Overlay Quick Tool
+    private var imageTextEditorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Workout Graphic Presets")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "textformat")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(AppTheme.primary)
+                    Text("Text on Image")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                }
 
-            ScrollView(.horizontal, showsIndicators: false) {
+                Spacer()
+
+                Button {
+                    showTextEditorModal = true
+                } label: {
+                    Text(imageOverlayText.isEmpty ? "Add Text" : "Edit Text")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(AppTheme.primary)
+                }
+            }
+
+            if !imageOverlayText.isEmpty {
                 HStack(spacing: 12) {
-                    ForEach(MediaPreset.defaults) { preset in
-                        Button {
-                            withAnimation {
-                                selectedPreset = preset
-                                workoutTag = preset.title
-                            }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Image(systemName: preset.systemIcon)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(AppTheme.primary)
-                                    Spacer()
-                                    Text(preset.mediaType.rawValue)
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(AppTheme.silver)
-                                }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(imageOverlayText)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
 
-                                Text(preset.title)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
+                        HStack(spacing: 8) {
+                            Text("Font: \(overlayFontStyle)")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(AppTheme.silver)
 
-                                Text(preset.workoutContext)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(AppTheme.silver)
-                            }
-                            .padding(12)
-                            .frame(width: 170, height: 95)
-                            .background(selectedPreset.id == preset.id ? AppTheme.surfaceRaised : AppTheme.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(selectedPreset.id == preset.id ? AppTheme.primary : AppTheme.hairline, lineWidth: selectedPreset.id == preset.id ? 2 : 1)
-                            )
+                            Circle()
+                                .fill(Color(hex: overlayColorHex))
+                                .frame(width: 10, height: 10)
+
+                            Text(overlayHasBackground ? "Boxed" : "Transparent")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(AppTheme.silver)
                         }
                     }
+
+                    Spacer()
+
+                    Button {
+                        imageOverlayText = ""
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundColor(.red.opacity(0.8))
+                    }
+                }
+                .padding(12)
+                .background(AppTheme.surfaceRaised)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                Button {
+                    showTextEditorModal = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "character.textbox")
+                            .font(.system(size: 18))
+                            .foregroundColor(AppTheme.primary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Add On-Screen Text / Sticker")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("Overlay custom text directly onto your photo")
+                                .font(.system(size: 11))
+                                .foregroundColor(AppTheme.silver)
+                        }
+                        Spacer()
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(AppTheme.primary)
+                    }
+                    .padding(12)
+                    .background(AppTheme.surfaceRaised)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
         }
         .padding(14)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: - On-Image Text Customizer Modal Sheet
+    private var onImageTextCustomizerSheet: some View {
+        NavigationStack {
+            ZStack {
+                AppTheme.ground.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Live Preview of text
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(AppTheme.surfaceRaised)
+                                .frame(height: 140)
+
+                            if !imageOverlayText.isEmpty {
+                                Text(imageOverlayText)
+                                    .font(fontForStyle(overlayFontStyle))
+                                    .foregroundColor(Color(hex: overlayColorHex))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        overlayHasBackground
+                                            ? Color.black.opacity(0.75)
+                                            : Color.clear
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .shadow(color: .black.opacity(0.9), radius: 6, x: 0, y: 2)
+                            } else {
+                                Text("Type text below...")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(AppTheme.silver)
+                            }
+                        }
+
+                        // Text Field Input
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Text Content")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+
+                            TextField("Enter text for your image...", text: $imageOverlayText)
+                                .font(.system(size: 15))
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .background(AppTheme.surfaceRaised)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        // Font Style Picker
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Typography Style")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+
+                            HStack(spacing: 8) {
+                                ForEach(fontStyles, id: \.self) { style in
+                                    Button {
+                                        overlayFontStyle = style
+                                    } label: {
+                                        Text(style)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(overlayFontStyle == style ? .black : .white)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(overlayFontStyle == style ? AppTheme.primary : AppTheme.surfaceRaised)
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                            }
+                        }
+
+                        // Color Palette
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Text Color")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+
+                            HStack(spacing: 12) {
+                                ForEach(availableColors, id: \.self) { hex in
+                                    Button {
+                                        overlayColorHex = hex
+                                    } label: {
+                                        Circle()
+                                            .fill(Color(hex: hex))
+                                            .frame(width: 34, height: 34)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(overlayColorHex == hex ? AppTheme.primary : Color.white.opacity(0.3), lineWidth: overlayColorHex == hex ? 3 : 1)
+                                            )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Background Box Toggle & Position
+                        VStack(spacing: 14) {
+                            Toggle("Background Box Overlay", isOn: $overlayHasBackground)
+                                .font(.system(size: 14, weight: .semibold))
+                                .tint(AppTheme.primary)
+
+                            Divider().background(AppTheme.hairline)
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Position on Image")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.white)
+
+                                Picker("Position", selection: $overlayPosition) {
+                                    Text("Top").tag(-0.8)
+                                    Text("Center").tag(0.0)
+                                    Text("Bottom").tag(0.8)
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                        }
+                        .padding(14)
+                        .background(AppTheme.surfaceRaised)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        Button {
+                            showTextEditorModal = false
+                        } label: {
+                            Text("Done")
+                                .font(.system(size: 15, weight: .black))
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(AppTheme.primary)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Add Text to Image")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        showTextEditorModal = false
+                    }
+                    .foregroundColor(AppTheme.silver)
+                }
+            }
+        }
+    }
+
+    private func fontForStyle(_ style: String) -> Font {
+        switch style {
+        case "Heavy":
+            return .system(size: 20, weight: .black, design: .default)
+        case "Modern":
+            return .system(size: 18, weight: .bold, design: .rounded)
+        case "Neon":
+            return .system(size: 19, weight: .black, design: .monospaced)
+        case "Typewriter":
+            return .system(size: 17, weight: .medium, design: .serif)
+        case "Minimal":
+            return .system(size: 16, weight: .semibold, design: .default)
+        default:
+            return .system(size: 18, weight: .bold)
+        }
     }
 
     // MARK: - Music Attachment Bar & Audio Preview
@@ -522,7 +768,7 @@ struct CreateMediaPostSheet: View {
                                 .foregroundColor(audio.platform.brandColor)
                         }
 
-                        Text("\(audio.artist) · \(audio.bpm) BPM · \(audio.workoutTag)")
+                        Text("\(audio.artist) · \(audio.bpm) BPM")
                             .font(.system(size: 11))
                             .foregroundColor(AppTheme.silver)
 
@@ -571,7 +817,7 @@ struct CreateMediaPostSheet: View {
                             Text("Attach Apple Music or Spotify Track")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("Hear song previews and sync rhythm to your workout post")
+                            Text("Hear song previews before applying")
                                 .font(.system(size: 11))
                                 .foregroundColor(AppTheme.silver)
                         }
@@ -593,70 +839,6 @@ struct CreateMediaPostSheet: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    // MARK: - Workout Details Section
-    private var workoutDetailsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Workout Identity")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
-
-            // Athlete Type Chips
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(AthleteType.allCases) { type in
-                        Button {
-                            selectedAthleteType = type
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: type.iconName)
-                                    .font(.system(size: 11, weight: .bold))
-                                Text(type.rawValue)
-                                    .font(.system(size: 12, weight: .bold))
-                            }
-                            .foregroundColor(selectedAthleteType == type ? .black : .white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(selectedAthleteType == type ? type.badgeColor : AppTheme.surfaceRaised)
-                            .clipShape(Capsule())
-                        }
-                    }
-                }
-            }
-
-            VStack(spacing: 10) {
-                HStack {
-                    Text("Workout Tag")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(AppTheme.silver)
-                    Spacer()
-                    TextField("e.g. 500 lbs Deadlift PR", text: $workoutTag)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.trailing)
-                }
-
-                Divider().background(AppTheme.hairline)
-
-                HStack {
-                    Text("Workout Stats")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(AppTheme.silver)
-                    Spacer()
-                    TextField("e.g. 5x5 @ 315 lbs · 60m", text: $workoutStats)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.trailing)
-                }
-            }
-            .padding(12)
-            .background(AppTheme.surfaceRaised)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .padding(14)
-        .background(AppTheme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
     // MARK: - Caption Input
     private var captionInputField: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -664,7 +846,7 @@ struct CreateMediaPostSheet: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
 
-            TextField("Share sets, reps, pacing, or athlete mindset...", text: $caption, axis: .vertical)
+            TextField("Write a caption...", text: $caption, axis: .vertical)
                 .font(.system(size: 14))
                 .foregroundColor(.white)
                 .padding(12)
@@ -679,14 +861,6 @@ struct CreateMediaPostSheet: View {
         .padding(14)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    // MARK: - Active Media Items
-    private var currentActiveMediaItems: [PostMediaItem] {
-        if mediaSelectionMode == .deviceMedia && !customPickedMediaItems.isEmpty {
-            return customPickedMediaItems
-        }
-        return selectedPreset.mediaItems
     }
 
     // MARK: - Photos & Video Loading Logic
@@ -704,7 +878,7 @@ struct CreateMediaPostSheet: View {
                         id: "device_media_\(UUID().uuidString)",
                         title: "Media \(index + 1)",
                         iconName: "photo.fill",
-                        subtitle: "Device Camera Roll",
+                        subtitle: nil,
                         isVideo: false,
                         customImageData: data
                     )
@@ -726,32 +900,46 @@ struct CreateMediaPostSheet: View {
         isPosting = true
         AudioPreviewEngine.shared.stop()
 
-        let finalMedia = currentActiveMediaItems.isEmpty ? selectedPreset.mediaItems : currentActiveMediaItems
+        let fallbackMedia = [
+            PostMediaItem(
+                id: UUID().uuidString,
+                title: "Post",
+                iconName: "photo.fill",
+                gradientHexes: ["#1F1111", "#3D1A1A"],
+                subtitle: nil,
+                isVideo: false
+            )
+        ]
+
+        let finalMedia = customPickedMediaItems.isEmpty ? fallbackMedia : customPickedMediaItems
         let finalCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? "Crushed another workout! \(workoutTag) ⚡️"
+            ? "New post ⚡️"
             : caption
 
         let post = AthletePost(
-            authorName: "You",
-            authorHandle: "athlete_you",
-            athleteType: selectedAthleteType,
+            authorName: authorName,
+            authorHandle: authorHandle,
+            athleteType: athleteType,
+            authorProfileImageData: authorProfileImageData,
+            isPublicAuthor: isPublicAuthor,
             timeAgo: "Just now",
-            workoutTag: workoutTag,
-            workoutStats: workoutStats,
+            workoutTag: "",
+            workoutStats: "",
             caption: finalCaption,
-            imageName: selectedPreset.systemIcon,
+            imageName: "photo.fill",
             mediaType: finalMedia.contains(where: { $0.isVideo }) ? .video : .photo,
             mediaItems: finalMedia,
-            mediaIconName: selectedPreset.systemIcon,
-            gradientColors: selectedPreset.gradientColors,
+            mediaIconName: "photo.fill",
+            gradientColors: [Color(hex: "#1A1A24"), Color(hex: "#2D1B36")],
             audioTrack: selectedAudioTrack,
-            textOverlay: nil,
+            videoFilter: activeFilter,
+            textOverlay: imageOverlayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : imageOverlayText,
             likesCount: 1,
             isLiked: true,
             comments: []
         )
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             onPublish?(post)
             onPost?(post)
             dismiss()
@@ -775,8 +963,8 @@ struct MusicPickerModal: View {
     @State private var importSongTitle: String = ""
     @State private var importArtistName: String = ""
     @State private var importPlatform: MusicService = .spotify
-    @State private var importBPM: Int = 150
-    @State private var importWorkoutTag: String = "Gym Phonk PR"
+    @State private var importBPM: Int = 140
+    @State private var importWorkoutTag: String = "Gym Vibe"
 
     var filteredTracks: [AudioTrack] {
         allLibraryTracks.filter { track in
@@ -823,7 +1011,7 @@ struct MusicPickerModal: View {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(AppTheme.silver)
-                        TextField("Search artist, track title, or workout vibe...", text: $searchQuery)
+                        TextField("Search artist, track title, or vibe...", text: $searchQuery)
                             .font(.system(size: 14))
                             .foregroundColor(.white)
                         if !searchQuery.isEmpty {
@@ -954,13 +1142,6 @@ struct MusicPickerModal: View {
                     Text("\(track.bpm) BPM")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(AppTheme.primary)
-
-                    Text("·")
-                        .foregroundColor(AppTheme.silver)
-
-                    Text(track.workoutTag)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(AppTheme.silver)
                 }
             }
 
@@ -1101,19 +1282,6 @@ struct MusicPickerModal: View {
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white)
                             }
-
-                            Divider().background(AppTheme.hairline)
-
-                            HStack {
-                                Text("Workout Vibe")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(AppTheme.silver)
-                                Spacer()
-                                TextField("e.g. Heavy PR / Run", text: $importWorkoutTag)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .multilineTextAlignment(.trailing)
-                            }
                         }
                         .padding(14)
                         .background(AppTheme.surfaceRaised)
@@ -1126,10 +1294,10 @@ struct MusicPickerModal: View {
                                 .foregroundColor(.white)
 
                             ForEach([
-                                ("Till I Collapse", "Eminem", MusicService.spotify, 171, "Max Effort"),
-                                ("Superhero (Heroes & Villains)", "Metro Boomin", MusicService.appleMusic, 117, "Heavy Bench"),
-                                ("Levitating", "Dua Lipa", MusicService.spotify, 103, "Zone 2 Cardio"),
-                                ("GigaChad Theme", "Phonk Nation", MusicService.appleMusic, 130, "Squat PR")
+                                ("Till I Collapse", "Eminem", MusicService.spotify, 171, "High Energy"),
+                                ("Superhero (Heroes & Villains)", "Metro Boomin", MusicService.appleMusic, 117, "Beats"),
+                                ("Levitating", "Dua Lipa", MusicService.spotify, 103, "Pop"),
+                                ("GigaChad Theme", "Phonk Nation", MusicService.appleMusic, 130, "Phonk")
                             ], id: \.0) { title, artist, platform, bpm, tag in
                                 Button {
                                     importSongTitle = title
@@ -1145,7 +1313,7 @@ struct MusicPickerModal: View {
                                             Text(title)
                                                 .font(.system(size: 13, weight: .bold))
                                                 .foregroundColor(.white)
-                                            Text("\(artist) · \(bpm) BPM · \(tag)")
+                                            Text("\(artist) · \(bpm) BPM")
                                                 .font(.system(size: 11))
                                                 .foregroundColor(AppTheme.silver)
                                         }
