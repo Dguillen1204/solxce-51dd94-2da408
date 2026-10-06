@@ -25,6 +25,13 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
     @Published var totalDistanceMeters: Double = 0.0
     @Published var currentSpeedMps: Double = 0.0 // meters per second
     @Published var splits: [RunSplit] = [] // Mile splits
+    @Published var laps: [RunLapData] = [] // Live laps recorded
+    @Published var currentLapElapsedSeconds: Int = 0
+    @Published var currentLapDistanceMeters: Double = 0.0
+    
+    // Heart Rate Integration
+    @Published var liveHeartRateBpm: Int = 0
+    @Published var heartRateSamples: [Int] = []
     
     // Background & Lock Screen Settings
     @Published var voiceAudioCuesEnabled: Bool = true
@@ -103,7 +110,57 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
         }
     }
     
-    // MARK: - Lock Screen & Now Playing Info Center
+    // MARK: - Manual & Auto Lap Recording
+    
+    public func recordLap(avgHeartRate: Int = 0, isManual: Bool = true) {
+        guard isTracking else { return }
+        let lapNum = laps.count + 1
+        let lapDuration = max(1, currentLapElapsedSeconds)
+        let lapDist = currentLapDistanceMeters * 0.000621371
+        
+        let paceMinutes = lapDist > 0.01 ? (Double(lapDuration) / 60.0) / lapDist : averagePaceMinutesPerMile
+        let mins = Int(paceMinutes)
+        let secs = Int((paceMinutes - Double(mins)) * 60)
+        let formatted = String(format: "%d'%02d\" /mi", mins, max(0, min(59, secs)))
+        
+        let hr = avgHeartRate > 0 ? avgHeartRate : (liveHeartRateBpm > 0 ? liveHeartRateBpm : 0)
+        
+        let newLap = RunLapData(
+            id: UUID(),
+            lapNumber: lapNum,
+            durationSeconds: lapDuration,
+            distanceMiles: lapDist,
+            formattedPace: formatted,
+            avgHeartRate: hr,
+            isManualLap: isManual
+        )
+        laps.insert(newLap, at: 0)
+        
+        // Reset current lap counters
+        currentLapElapsedSeconds = 0
+        currentLapDistanceMeters = 0.0
+        
+        if isManual {
+            speakCue(String(format: "Lap %d recorded. Time %@. Pace %@.", lapNum, newLap.formattedDuration, formatted))
+        }
+    }
+    
+    public func updateLiveHeartRate(_ bpm: Int) {
+        guard bpm > 30 else { return }
+        self.liveHeartRateBpm = bpm
+        self.heartRateSamples.append(bpm)
+    }
+    
+    var averageHeartRate: Int {
+        guard !heartRateSamples.isEmpty else { return liveHeartRateBpm }
+        let sum = heartRateSamples.reduce(0, +)
+        return sum / heartRateSamples.count
+    }
+    
+    var maxHeartRate: Int {
+        return heartRateSamples.max() ?? liveHeartRateBpm
+    }
+    
     private func updateNowPlayingLockScreenMetrics() {
         let center = MPNowPlayingInfoCenter.default()
         var nowPlayingInfo: [String: Any] = [:]
@@ -204,9 +261,13 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
         isTracking = true
         isPaused = false
         elapsedSeconds = 0
+        currentLapElapsedSeconds = 0
+        currentLapDistanceMeters = 0.0
         totalDistanceMeters = 0.0
         routeCoordinates.removeAll()
         splits.removeAll()
+        laps.removeAll()
+        heartRateSamples.removeAll()
         lastLocation = nil
         lastAnnouncedMile = 0
         
@@ -224,6 +285,7 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
             .sink { [weak self] _ in
                 guard let self = self, self.isTracking, !self.isPaused else { return }
                 self.elapsedSeconds += 1
+                self.currentLapElapsedSeconds += 1
                 self.checkMileSplits()
                 if self.elapsedSeconds % 5 == 0 {
                     self.updateNowPlayingLockScreenMetrics()
@@ -263,7 +325,12 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
         speakCue("Resuming run.")
     }
     
-    func stopAndFinalizeRun() -> (distanceMiles: Double, durationSecs: Int, calories: Int, avgPace: String, route: [CLLocationCoordinate2D]) {
+    func stopAndFinalizeRun() -> (distanceMiles: Double, durationSecs: Int, calories: Int, avgPace: String, route: [CLLocationCoordinate2D], avgHr: Int, maxHr: Int, laps: [RunLapData]) {
+        // If there's an ongoing lap with distance/time, record final lap
+        if currentLapElapsedSeconds > 0 || laps.isEmpty {
+            recordLap(avgHeartRate: liveHeartRateBpm, isManual: false)
+        }
+        
         isTracking = false
         isPaused = false
         locationManager.stopUpdatingLocation()
@@ -280,10 +347,13 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
         let finalCals = estimatedCaloriesBurned
         let finalPace = averagePaceFormatted
         let finalRoute = routeCoordinates
+        let avgHr = averageHeartRate
+        let maxHr = maxHeartRate
+        let finalLaps = laps.sorted(by: { $0.lapNumber < $1.lapNumber })
         
         speakCue(String(format: "Workout complete. Total distance %.2f miles at %@ average pace. Great work!", finalDistance, finalPace))
         
-        return (finalDistance, finalDuration, finalCals, finalPace, finalRoute)
+        return (finalDistance, finalDuration, finalCals, finalPace, finalRoute, avgHr, maxHr, finalLaps)
     }
     
     func reset() {
@@ -342,6 +412,7 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
                 // Distance in meters moved per second
                 let metersMoved = mps
                 self.totalDistanceMeters += metersMoved
+                self.currentLapDistanceMeters += metersMoved
                 
                 // Earth radius approx 6,378,137m
                 let dLat = (metersMoved * cos(headingRad)) / 111111.0
@@ -409,6 +480,7 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
                     let deltaMeters = location.distance(from: last)
                     if deltaMeters > 1.2 { // Accurate step threshold
                         self.totalDistanceMeters += deltaMeters
+                        self.currentLapDistanceMeters += deltaMeters
                         self.routeCoordinates.append(location.coordinate)
                         
                         // Use native GPS speed if valid (> 0.2 m/s), else compute from delta
