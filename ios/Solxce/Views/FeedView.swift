@@ -150,7 +150,7 @@ struct FeedView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    SolxceLogoView(size: 26, showGlow: false)
+                    SolxceLogoView(size: 42, showGlow: false)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
