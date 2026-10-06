@@ -132,8 +132,8 @@ struct FeedView: View {
     @State private var selectedOtherAthleteHandle: String? = nil
     @State private var showingDirectMessages = false
 
-    private var visiblePosts: [Binding<AthletePost>] {
-        $postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle.wrappedValue) }
+    private var unblockedPosts: [AthletePost] {
+        postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
     }
 
     private func handleShare(for post: AthletePost) {
@@ -145,21 +145,23 @@ struct FeedView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 24) {
-                    ForEach(visiblePosts) { $post in
-                        SimplePostCardView(
-                            post: $post,
-                            onTapAuthor: {
-                                if post.authorHandle != currentUserHandle {
-                                    selectedOtherAthleteHandle = post.authorHandle
+                    ForEach(unblockedPosts) { post in
+                        if let index = postStore.posts.firstIndex(where: { $0.id == post.id }) {
+                            SimplePostCardView(
+                                post: $postStore.posts[index],
+                                onTapAuthor: {
+                                    if post.authorHandle != currentUserHandle {
+                                        selectedOtherAthleteHandle = post.authorHandle
+                                    }
+                                },
+                                onShare: {
+                                    handleShare(for: post)
+                                },
+                                onOpenReel: {
+                                    activeReelPost = post
                                 }
-                            },
-                            onShare: {
-                                handleShare(for: post)
-                            },
-                            onOpenReel: {
-                                activeReelPost = post
-                            }
-                        )
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
