@@ -1071,6 +1071,18 @@ struct CreateMediaPostSheet: View {
             ? "New post ⚡️"
             : caption
 
+        let textStickerData: TikTokTextStickerData? = imageOverlayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : TikTokTextStickerData(
+            text: imageOverlayText,
+            fontStyle: overlayFontStyle,
+            highlightMode: overlayHasBackground ? TikTokHighlightMode.filled.rawValue : TikTokHighlightMode.classic.rawValue,
+            colorHex: overlayColorHex,
+            xOffset: textOffsetX,
+            yOffset: textOffsetY,
+            rotationDegrees: textRotationDegrees,
+            scale: textScale,
+            fontSize: textFontSize
+        )
+
         let post = AthletePost(
             authorName: authorName,
             authorHandle: authorHandle,
@@ -1089,6 +1101,7 @@ struct CreateMediaPostSheet: View {
             audioTrack: selectedAudioTrack,
             videoFilter: activeFilter,
             textOverlay: imageOverlayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : imageOverlayText,
+            textSticker: textStickerData,
             likesCount: 1,
             isLiked: true,
             comments: []
