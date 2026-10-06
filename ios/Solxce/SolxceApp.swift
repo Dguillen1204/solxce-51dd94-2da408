@@ -87,17 +87,11 @@ struct ContentView: View {
                     }
                     .tag(3)
 
-                PlannerView()
-                    .tabItem {
-                        Label("Schedule", systemImage: "calendar")
-                    }
-                    .tag(4)
-
                 ProfileView()
                     .tabItem {
-                        Label("Athlete", systemImage: "person.fill")
+                        Label("Profile", systemImage: "person.crop.circle.fill")
                     }
-                    .tag(5)
+                    .tag(4)
             }
             .tint(AppTheme.primary)
 
