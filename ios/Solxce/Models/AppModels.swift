@@ -213,6 +213,9 @@ final class RunEntry {
     var caloriesBurned: Int
     var notes: String
     var routeDataJson: String // Serialized array of [[Double]] (lat, lon) for GPS route map replay
+    var averageHeartRateBpm: Int
+    var maxHeartRateBpm: Int
+    var lapsDataJson: String // Serialized array of RunLapData for lap times & mile splits
 
     init(
         id: UUID = UUID(),
@@ -222,7 +225,10 @@ final class RunEntry {
         date: Date = Date(),
         caloriesBurned: Int = 0,
         notes: String = "",
-        routeCoordinates: [CLLocationCoordinate2D] = []
+        routeCoordinates: [CLLocationCoordinate2D] = [],
+        averageHeartRateBpm: Int = 0,
+        maxHeartRateBpm: Int = 0,
+        laps: [RunLapData] = []
     ) {
         self.id = id
         self.title = title
@@ -231,6 +237,8 @@ final class RunEntry {
         self.date = date
         self.caloriesBurned = caloriesBurned > 0 ? caloriesBurned : Int(distanceMiles * 110)
         self.notes = notes
+        self.averageHeartRateBpm = averageHeartRateBpm
+        self.maxHeartRateBpm = maxHeartRateBpm
         
         let pairs = routeCoordinates.map { [$0.latitude, $0.longitude] }
         if let data = try? JSONEncoder().encode(pairs), let json = String(data: data, encoding: .utf8) {
@@ -238,6 +246,20 @@ final class RunEntry {
         } else {
             self.routeDataJson = "[]"
         }
+
+        if let lapData = try? JSONEncoder().encode(laps), let lapJson = String(data: lapData, encoding: .utf8) {
+            self.lapsDataJson = lapJson
+        } else {
+            self.lapsDataJson = "[]"
+        }
+    }
+
+    var decodedLaps: [RunLapData] {
+        guard let data = lapsDataJson.data(using: .utf8),
+              let laps = try? JSONDecoder().decode([RunLapData].self, from: data) else {
+            return []
+        }
+        return laps
     }
 
     var paceMinutesPerMile: Double {
@@ -275,7 +297,40 @@ final class RunEntry {
     }
 }
 
-// MARK: - Food Entry
+// MARK: - Run Lap Data Model
+public struct RunLapData: Codable, Identifiable, Hashable {
+    public var id: UUID
+    public var lapNumber: Int
+    public var durationSeconds: Int
+    public var distanceMiles: Double
+    public var formattedPace: String
+    public var avgHeartRate: Int
+    public var isManualLap: Bool
+
+    public init(
+        id: UUID = UUID(),
+        lapNumber: Int,
+        durationSeconds: Int,
+        distanceMiles: Double,
+        formattedPace: String,
+        avgHeartRate: Int = 0,
+        isManualLap: Bool = false
+    ) {
+        self.id = id
+        self.lapNumber = lapNumber
+        self.durationSeconds = durationSeconds
+        self.distanceMiles = distanceMiles
+        self.formattedPace = formattedPace
+        self.avgHeartRate = avgHeartRate
+        self.isManualLap = isManualLap
+    }
+
+    public var formattedDuration: String {
+        let mins = durationSeconds / 60
+        let secs = durationSeconds % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+}
 @Model
 final class FoodEntry {
     var id: UUID
