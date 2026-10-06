@@ -71,6 +71,7 @@ struct ContentView: View {
     @AppStorage("solxce_has_completed_athlete_signup") private var hasCompletedSignup: Bool = false
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
     @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
+    @ObservedObject private var notificationManager = NotificationManager.shared
 
     @State private var selectedTab: Int = 0
     @State private var showAICoachSheet: Bool = false
@@ -124,6 +125,16 @@ struct ContentView: View {
                 .padding(.trailing, 16)
                 .padding(.bottom, 62) // Positioned nicely above the TabBar
         }
+        .overlay(alignment: .top) {
+            if let banner = notificationManager.activeInAppBanner {
+                inAppNotificationToast(banner: banner)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 54)
+                    .padding(.horizontal, 16)
+                    .zIndex(100)
+            }
+        }
+        .animation(.spring(response: 0.38, dampingFraction: 0.8), value: notificationManager.activeInAppBanner?.title)
         .sheet(isPresented: $showAICoachSheet) {
             AICoachChatView()
                 .presentationDragIndicator(.visible)
@@ -135,10 +146,60 @@ struct ContentView: View {
         }
         .onAppear {
             SeedDataManager.seedIfNeeded(context: modelContext)
+            notificationManager.checkAuthorization()
             if !hasCompletedSignup {
                 showSignUpSheet = true
             }
         }
+    }
+
+    // MARK: - In-App Notification Toast Banner
+    private func inAppNotificationToast(banner: NotificationManager.InAppNotificationBanner) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(banner.color.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                Image(systemName: banner.icon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(banner.color)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(banner.title)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+
+                Text(banner.body)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.8))
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            Button {
+                withAnimation {
+                    notificationManager.activeInAppBanner = nil
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                    .padding(6)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(hex: "#1A1A1E"))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(banner.color.opacity(0.4), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.6), radius: 12, x: 0, y: 6)
+        )
     }
 
     // MARK: - Floating AI Circle Button
