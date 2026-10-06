@@ -318,19 +318,119 @@ struct FeedView: View {
     // MARK: - Search Results View
     private var searchResultsView: some View {
         ScrollView {
-            LazyVStack(spacing: 10) {
+            LazyVStack(spacing: 12) {
+                // Category Filter Pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedFilterCategory = nil
+                            }
+                        } label: {
+                            Text("All Athletes")
+                                .font(.system(size: 13, weight: .semibold))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
+                                .background(selectedFilterCategory == nil ? AppTheme.primary : AppTheme.surface)
+                                .foregroundColor(selectedFilterCategory == nil ? .black : AppTheme.textSecondary)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(selectedFilterCategory == nil ? Color.clear : AppTheme.hairline, lineWidth: 1)
+                                )
+                        }
+
+                        ForEach(AthleteType.allCases, id: \.self) { type in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    if selectedFilterCategory == type {
+                                        selectedFilterCategory = nil
+                                    } else {
+                                        selectedFilterCategory = type
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: type.iconName)
+                                        .font(.system(size: 11))
+                                    Text(type.rawValue)
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(selectedFilterCategory == type ? AppTheme.primary : AppTheme.surface)
+                                .foregroundColor(selectedFilterCategory == type ? .black : AppTheme.textSecondary)
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(selectedFilterCategory == type ? Color.clear : AppTheme.hairline, lineWidth: 1)
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 4)
+                }
+
+                // Recent Searches when search box is empty
+                if searchText.isEmpty && !recentSearches.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("RECENT SEARCHES")
+                                .font(AppTheme.metaFont)
+                                .foregroundColor(AppTheme.textMuted)
+                                .tracking(1.2)
+
+                            Spacer()
+
+                            Button("Clear") {
+                                withAnimation {
+                                    recentSearches.removeAll()
+                                }
+                            }
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textMuted)
+                        }
+                        .padding(.horizontal, 16)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(recentSearches, id: \.self) { handle in
+                                    Button {
+                                        searchText = handle
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "clock.arrow.circlepath")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(AppTheme.primary)
+                                            Text("@\(handle)")
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundColor(AppTheme.text)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(AppTheme.surface)
+                                        .clipShape(Capsule())
+                                        .overlay(Capsule().stroke(AppTheme.hairline, lineWidth: 1))
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 if matchingAthletes.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "person.slash.fill")
                             .font(.system(size: 38))
                             .foregroundColor(AppTheme.textMuted)
-                            .padding(.top, 40)
+                            .padding(.top, 30)
 
                         Text("No athletes found")
                             .font(AppTheme.titleFont)
                             .foregroundColor(AppTheme.text)
 
-                        Text("Try searching by handle (e.g. @marcus_lift, @elena_runs) or sport discipline.")
+                        Text("Try searching by username (e.g. @marcus_lifts, @elena_runs, @kai_athletic) or full name.")
                             .font(AppTheme.subheadlineFont)
                             .foregroundColor(AppTheme.textSecondary)
                             .multilineTextAlignment(.center)
@@ -338,19 +438,25 @@ struct FeedView: View {
                     }
                 } else {
                     HStack {
-                        Text(searchText.isEmpty ? "SUGGESTED ATHLETES" : "SEARCH RESULTS (\(matchingAthletes.count))")
+                        Text(searchText.isEmpty ? (selectedFilterCategory == nil ? "ALL ATHLETES (\(matchingAthletes.count))" : "\(selectedFilterCategory?.rawValue.uppercased() ?? "") ATHLETES (\(matchingAthletes.count))") : "SEARCH RESULTS (\(matchingAthletes.count))")
                             .font(AppTheme.metaFont)
                             .foregroundColor(AppTheme.textMuted)
                             .tracking(1.2)
                         Spacer()
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
 
                     ForEach(matchingAthletes) { athlete in
                         AthleteSearchResultRow(
                             athlete: athlete,
                             onSelect: {
+                                if !recentSearches.contains(athlete.handle) {
+                                    recentSearches.insert(athlete.handle, at: 0)
+                                    if recentSearches.count > 6 {
+                                        recentSearches.removeLast()
+                                    }
+                                }
                                 selectedOtherAthleteHandle = athlete.handle
                             }
                         )
