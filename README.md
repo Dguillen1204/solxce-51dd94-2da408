@@ -1,4 +1,4 @@
-# solxce-51dd94
+# solxce
 
 Built with [10x](https://10x.app). Edit this README freely — 10x
 will not overwrite it once you've made changes.
@@ -23,7 +23,7 @@ press ⌘R to build and run.
 
 ## Bundle
 
-`app.10x.solxce-51dd94`
+`app.10x.solxce`
 
 
 
