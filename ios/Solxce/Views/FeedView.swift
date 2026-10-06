@@ -141,6 +141,7 @@ struct FeedView: View {
     // Active full screen reel modal
     @State private var activeReelPost: AthletePost? = nil
     @State private var showingCreatePostSheet = false
+    @State private var showingUserSearchSheet = false
     @State private var shareSheetItem: ShareTextItem? = nil
     @State private var selectedAthleteProfile: (handle: String, name: String, type: AthleteType)? = nil
     @State private var showingDirectMessages = false
@@ -158,12 +159,22 @@ struct FeedView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showingDirectMessages = true
-                    } label: {
-                        Image(systemName: "bubble.left.and.bubble.right.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(AppTheme.text)
+                    HStack(spacing: 12) {
+                        Button {
+                            showingDirectMessages = true
+                        } label: {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(AppTheme.text)
+                        }
+
+                        Button {
+                            showingUserSearchSheet = true
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(AppTheme.text)
+                        }
                     }
                 }
                 ToolbarItem(placement: .principal) {
@@ -200,6 +211,14 @@ struct FeedView: View {
             }
             .sheet(isPresented: $showingDirectMessages) {
                 DirectMessagesListView(currentUserHandle: currentUserHandle)
+            }
+            .sheet(isPresented: $showingUserSearchSheet) {
+                UserSearchSheet(
+                    currentUserHandle: currentUserHandle,
+                    onSelectAthlete: { handle, name, type in
+                        selectedAthleteProfile = (handle, name, type)
+                    }
+                )
             }
             .sheet(item: Binding(
                 get: {
