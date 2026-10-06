@@ -123,11 +123,14 @@ struct FeedView: View {
     }
 
     @ObservedObject private var postStore = FeedPostStore.shared
+    @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
 
     // Active full screen reel modal
     @State private var activeReelPost: AthletePost? = nil
     @State private var showingCreatePostSheet = false
     @State private var shareSheetItem: ShareTextItem? = nil
+    @State private var selectedAthleteProfile: (handle: String, name: String, type: AthleteType)? = nil
+    @State private var showingDirectMessages = false
 
     private func handleShare(for post: AthletePost) {
         let text = "Check out @\(post.authorHandle)'s workout on Solxce: \(post.caption)"
@@ -141,6 +144,15 @@ struct FeedView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showingDirectMessages = true
+                    } label: {
+                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(AppTheme.text)
+                    }
+                }
                 ToolbarItem(placement: .principal) {
                     SolxceLogoView(size: 42, showGlow: false)
                 }
@@ -173,6 +185,31 @@ struct FeedView: View {
             .sheet(item: $shareSheetItem) { item in
                 ShareActivitySheet(text: item.text)
             }
+            .sheet(isPresented: $showingDirectMessages) {
+                DirectMessagesListView(currentUserHandle: currentUserHandle)
+            }
+            .sheet(item: Binding(
+                get: {
+                    if let selected = selectedAthleteProfile {
+                        return SelectedAthleteWrapper(handle: selected.handle, name: selected.name, type: selected.type)
+                    }
+                    return nil
+                },
+                set: { wrapper in
+                    if let wrapper = wrapper {
+                        selectedAthleteProfile = (wrapper.handle, wrapper.name, wrapper.type)
+                    } else {
+                        selectedAthleteProfile = nil
+                    }
+                }
+            )) { wrapper in
+                AthletePublicProfileView(
+                    athleteHandle: wrapper.handle,
+                    fallbackName: wrapper.name,
+                    fallbackType: wrapper.type,
+                    currentUserHandle: currentUserHandle
+                )
+            }
             .fullScreenCover(item: $activeReelPost) { reelPost in
                 if let index = postStore.posts.firstIndex(where: { $0.id == reelPost.id }) {
                     TikTokReelPlayerModal(
@@ -191,11 +228,13 @@ struct FeedView: View {
     private var feedContentView: some View {
         ScrollView {
             LazyVStack(spacing: 24) {
-                ForEach(postStore.posts) { post in
+                ForEach(visiblePosts) { post in
                     if let index = postStore.posts.firstIndex(where: { $0.id == post.id }) {
                         SimplePostCardView(
                             post: $postStore.posts[index],
-                            onTapAuthor: nil,
+                            onTapAuthor: {
+                                selectedAthleteProfile = (post.authorHandle, post.authorName, post.athleteType)
+                            },
                             onShare: {
                                 handleShare(for: post)
                             },
@@ -208,6 +247,12 @@ struct FeedView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
+        }
+    }
+
+    private var visiblePosts: [AthletePost] {
+        postStore.posts.filter { post in
+            !relationshipStore.isBlocked(handle: post.authorHandle)
         }
     }
 }
