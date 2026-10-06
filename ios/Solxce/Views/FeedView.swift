@@ -199,11 +199,13 @@ struct FeedView: View {
             .sheet(isPresented: $showingDirectMessages) {
                 DirectMessagesInboxView()
             }
-            .sheet(item: Binding(
-                get: { selectedOtherAthleteHandle.map { IdentifiableString(id: $0) } },
-                set: { selectedOtherAthleteHandle = $0?.id }
-            )) { item in
-                OtherUserProfileView(handle: item.id)
+            .sheet(isPresented: Binding(
+                get: { selectedOtherAthleteHandle != nil },
+                set: { if !$0 { selectedOtherAthleteHandle = nil } }
+            )) {
+                if let handle = selectedOtherAthleteHandle {
+                    OtherUserProfileView(handle: handle)
+                }
             }
             .sheet(isPresented: $showingCreatePostSheet) {
                 CreateMediaPostSheet(
