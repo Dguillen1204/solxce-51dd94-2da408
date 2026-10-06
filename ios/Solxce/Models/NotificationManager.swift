@@ -190,12 +190,12 @@ public final class NotificationManager: NSObject, ObservableObject, UNUserNotifi
 
         UNUserNotificationCenter.current().add(request) { _ in
             Task { @MainActor in
-                self.showInAppBanner(title: title, body: body, icon: "bell.badge.fill", color: Color(hex: "#CCFF00"))
+                self.showInAppBanner(title: title, body: body, icon: "bell.badge.fill", color: Color.green)
             }
         }
     }
 
-    public func showInAppBanner(title: String, body: String, icon: String = "bell.fill", color: Color = Color(hex: "#CCFF00")) {
+    public func showInAppBanner(title: String, body: String, icon: String = "bell.fill", color: Color = Color.green) {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             self.activeInAppBanner = InAppNotificationBanner(title: title, body: body, icon: icon, color: color)
         }
@@ -231,7 +231,7 @@ public final class NotificationManager: NSObject, ObservableObject, UNUserNotifi
                 title: title,
                 body: body,
                 icon: "bell.badge.fill",
-                color: Color(hex: "#CCFF00")
+                color: Color.green
             )
         }
 
