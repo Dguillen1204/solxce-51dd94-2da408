@@ -313,6 +313,33 @@ struct TikTokReelPlayerModal: View {
                 filter.tintColor
                     .allowsHitTesting(false)
             }
+
+            // Movable Text Overlay Sticker
+            if let sticker = post.textSticker, !sticker.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                TikTokTextBadgeView(
+                    text: sticker.text,
+                    fontStyle: sticker.parsedFontStyle,
+                    highlightMode: sticker.parsedHighlightMode,
+                    textColor: sticker.textColor,
+                    fontSize: sticker.fontSize + 2,
+                    alignment: sticker.textAlignment
+                )
+                .rotationEffect(.degrees(sticker.rotationDegrees))
+                .scaleEffect(sticker.scale)
+                .offset(x: sticker.xOffset, y: sticker.yOffset)
+                .padding(24)
+                .allowsHitTesting(false)
+            } else if let legacyText = post.textOverlay, !legacyText.isEmpty {
+                TikTokTextBadgeView(
+                    text: legacyText,
+                    fontStyle: .neon,
+                    highlightMode: .filled,
+                    textColor: Color(hex: "#CCFF00"),
+                    fontSize: 16
+                )
+                .padding(24)
+                .allowsHitTesting(false)
+            }
         }
     }
 
