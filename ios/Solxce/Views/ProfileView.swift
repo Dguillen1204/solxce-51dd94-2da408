@@ -374,18 +374,33 @@ struct ProfileView: View {
                         .font(AppTheme.monoFont)
                         .foregroundStyle(AppTheme.textSecondary)
 
-                    // Public / Private Profile Status Pill
-                    HStack(spacing: 4) {
-                        Image(systemName: currentProfile.isPublicProfile ? "globe.americas.fill" : "lock.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text(currentProfile.isPublicProfile ? "Public Profile" : "Private")
-                            .font(.system(size: 10, weight: .bold))
+                    // Interactive Public / Private Profile Status Pill
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            currentProfile.isPublicProfile.toggle()
+                            try? modelContext.save()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: currentProfile.isPublicProfile ? "globe.americas.fill" : "lock.fill")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text(currentProfile.isPublicProfile ? "Public" : "Private")
+                                .font(.system(size: 10, weight: .bold))
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 8, weight: .bold))
+                                .opacity(0.8)
+                        }
+                        .foregroundColor(currentProfile.isPublicProfile ? AppTheme.primary : AppTheme.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background((currentProfile.isPublicProfile ? AppTheme.primary : AppTheme.textSecondary).opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke((currentProfile.isPublicProfile ? AppTheme.primary : AppTheme.textSecondary).opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .foregroundColor(currentProfile.isPublicProfile ? AppTheme.primary : AppTheme.textSecondary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background((currentProfile.isPublicProfile ? AppTheme.primary : AppTheme.textSecondary).opacity(0.12))
-                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
                 }
 
                 Text(currentProfile.bio)
