@@ -259,7 +259,7 @@ struct FeedView: View {
 
                 TextField("Search athletes by @username, name...", text: $searchText)
                     .font(AppTheme.bodyFont)
-                    .foregroundColor(AppTheme.textPrimary)
+                    .foregroundColor(AppTheme.text)
                     .autocorrectionDisabled(true)
                     .textInputAutocapitalization(.never)
                     .onTapGesture {
@@ -274,7 +274,7 @@ struct FeedView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
-                            .foregroundColor(AppTheme.textTertiary)
+                            .foregroundColor(AppTheme.textMuted)
                     }
                 }
             }
@@ -313,12 +313,12 @@ struct FeedView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "person.slash.fill")
                             .font(.system(size: 38))
-                            .foregroundColor(AppTheme.textTertiary)
+                            .foregroundColor(AppTheme.textMuted)
                             .padding(.top, 40)
 
                         Text("No athletes found")
                             .font(AppTheme.titleFont)
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(AppTheme.text)
 
                         Text("Try searching by handle (e.g. @marcus_lift, @elena_runs) or sport discipline.")
                             .font(AppTheme.subheadlineFont)
@@ -330,7 +330,7 @@ struct FeedView: View {
                     HStack {
                         Text(searchText.isEmpty ? "SUGGESTED ATHLETES" : "SEARCH RESULTS (\(matchingAthletes.count))")
                             .font(AppTheme.metaFont)
-                            .foregroundColor(AppTheme.textTertiary)
+                            .foregroundColor(AppTheme.textMuted)
                             .tracking(1.2)
                         Spacer()
                     }
@@ -414,7 +414,7 @@ struct AthleteSearchResultRow: View {
                     HStack(spacing: 6) {
                         Text(athlete.name)
                             .font(AppTheme.headlineFont)
-                            .foregroundColor(AppTheme.textPrimary)
+                            .foregroundColor(AppTheme.text)
 
                         if athlete.isVerifiedAthlete {
                             Image(systemName: "checkmark.seal.fill")
@@ -430,7 +430,7 @@ struct AthleteSearchResultRow: View {
 
                         Text("•")
                             .font(.system(size: 10))
-                            .foregroundColor(AppTheme.textTertiary)
+                            .foregroundColor(AppTheme.textMuted)
 
                         Text(athlete.athleteType.rawValue)
                             .font(.system(size: 11, weight: .semibold))
@@ -453,7 +453,7 @@ struct AthleteSearchResultRow: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 6)
                         .background(isFollowing ? AppTheme.surfaceRaised : AppTheme.primary)
-                        .foregroundColor(isFollowing ? AppTheme.textPrimary : .black)
+                        .foregroundColor(isFollowing ? AppTheme.text : .black)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
