@@ -496,12 +496,12 @@ struct SettingsView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(AppTheme.textSecondary)
                 }
-                .padding(.horizontal, AppTheme.Spacing.cardPadding)
+                .padding(.horizontal, AppTheme.Spacing.md)
                 .padding(.vertical, 14)
-                .background(AppTheme.card)
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card))
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
                 .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
                         .stroke(AppTheme.hairline, lineWidth: 1)
                 )
             }
