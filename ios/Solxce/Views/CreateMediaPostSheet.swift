@@ -221,16 +221,10 @@ struct CreateMediaPostSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                 }
 
-                // Render On-Image Text Overlay if added
+                // Movable & Interactive On-Image Text Overlay
                 if !imageOverlayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    VStack {
-                        if overlayPosition > 0.3 {
-                            Spacer()
-                        }
-
-                        Button {
-                            showTextEditorModal = true
-                        } label: {
+                    ZStack {
+                        VStack(spacing: 4) {
                             Text(imageOverlayText)
                                 .font(fontForStyle(overlayFontStyle))
                                 .foregroundColor(Color(hex: overlayColorHex))
@@ -239,16 +233,51 @@ struct CreateMediaPostSheet: View {
                                 .padding(.vertical, 8)
                                 .background(
                                     overlayHasBackground
-                                        ? Color.black.opacity(0.75)
+                                        ? Color.black.opacity(0.8)
                                         : Color.clear
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(AppTheme.primary.opacity(0.4), lineWidth: 1)
+                                )
                                 .shadow(color: .black.opacity(0.9), radius: 6, x: 0, y: 2)
-                        }
-                        .padding(.horizontal, 20)
 
-                        if overlayPosition < -0.3 {
-                            Spacer()
+                            // Subtle helper hint beneath sticker
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                                    .font(.system(size: 8))
+                                Text("Drag anywhere")
+                                    .font(.system(size: 8, weight: .bold))
+                            }
+                            .foregroundColor(.white.opacity(0.75))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.55))
+                            .clipShape(Capsule())
+                        }
+                        .scaleEffect(textScale)
+                        .rotationEffect(.degrees(textRotationDegrees))
+                        .offset(
+                            x: textOffsetX + textDragCurrentTranslation.width,
+                            y: textOffsetY + textDragCurrentTranslation.height
+                        )
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    textDragCurrentTranslation = value.translation
+                                }
+                                .onEnded { value in
+                                    textOffsetX += value.translation.width
+                                    textOffsetY += value.translation.height
+                                    // Clamp within canvas bounds
+                                    textOffsetX = min(max(textOffsetX, -140), 140)
+                                    textOffsetY = min(max(textOffsetY, -110), 110)
+                                    textDragCurrentTranslation = .zero
+                                }
+                        )
+                        .onTapGesture {
+                            showTextEditorModal = true
                         }
                     }
                     .frame(height: 290)
