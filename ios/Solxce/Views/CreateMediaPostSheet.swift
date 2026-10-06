@@ -752,7 +752,8 @@ struct CreateMediaPostSheet: View {
         )
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            onPublish(post)
+            onPublish?(post)
+            onPost?(post)
             dismiss()
         }
     }
