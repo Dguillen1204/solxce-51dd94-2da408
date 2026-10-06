@@ -54,13 +54,19 @@ struct CreateMediaPostSheet: View {
     @State private var customPickedMediaItems: [PostMediaItem] = []
     @State private var isLoadingMedia: Bool = false
 
-    // On-Image Text Overlay State
+    // On-Image Text Overlay State (Fully Draggable & Customizable)
     @State private var showTextEditorModal: Bool = false
     @State private var imageOverlayText: String = ""
     @State private var overlayColorHex: String = "#FFFFFF"
-    @State private var overlayFontStyle: String = "Heavy"
+    @State private var overlayFontStyle: String = "Neon"
     @State private var overlayHasBackground: Bool = true
-    @State private var overlayPosition: Double = 0.0 // -0.8 (top), 0.0 (center), 0.8 (bottom)
+    @State private var overlayPosition: Double = 0.0 // legacy fallback
+    @State private var textOffsetX: CGFloat = 0.0
+    @State private var textOffsetY: CGFloat = 0.0
+    @State private var textDragCurrentTranslation: CGSize = .zero
+    @State private var textRotationDegrees: Double = 0.0
+    @State private var textScale: CGFloat = 1.0
+    @State private var textFontSize: CGFloat = 16.0
 
     let availableColors: [String] = [
         "#FFFFFF", "#CCFF00", "#FF453A", "#FF9F0A", "#30D158", "#0A84FF", "#BF5AF2", "#000000"
