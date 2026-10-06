@@ -20,6 +20,7 @@ public struct AthletePost: Identifiable {
     public let mediaIconName: String
     public let gradientColors: [Color]
     public let audioTrack: AudioTrack?
+    public let videoFilter: PostVideoFilter?
     public let textOverlay: String?
     public var likesCount: Int
     public var isLiked: Bool
@@ -41,6 +42,7 @@ public struct AthletePost: Identifiable {
         mediaIconName: String = "figure.strengthtraining.traditional",
         gradientColors: [Color] = [Color(red: 0.15, green: 0.05, blue: 0.05), Color(red: 0.35, green: 0.1, blue: 0.1)],
         audioTrack: AudioTrack? = AudioTrack.library.first,
+        videoFilter: PostVideoFilter? = .normal,
         textOverlay: String? = nil,
         likesCount: Int,
         isLiked: Bool,
@@ -63,6 +65,7 @@ public struct AthletePost: Identifiable {
         self.mediaIconName = mediaIconName
         self.gradientColors = gradientColors
         self.audioTrack = audioTrack
+        self.videoFilter = videoFilter
         self.textOverlay = textOverlay
         self.likesCount = likesCount
         self.isLiked = isLiked
