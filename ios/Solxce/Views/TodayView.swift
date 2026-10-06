@@ -15,6 +15,7 @@ struct TodayView: View {
     @ObservedObject private var subManager = SubscriptionManager.shared
     @ObservedObject private var watchManager = AppleWatchSyncManager.shared
 
+    @State private var showingPlanner = false
     @State private var showingWorkoutLogger = false
     @State private var showingRunLogger = false
     @State private var showingFoodLogger = false
@@ -97,6 +98,9 @@ struct TodayView: View {
             }
             .sheet(isPresented: $showingWatchHub) {
                 AppleWatchHubView()
+            }
+            .sheet(isPresented: $showingPlanner) {
+                PlannerView()
             }
         }
     }
@@ -213,7 +217,7 @@ struct TodayView: View {
                 .padding(.trailing, 4)
             }
 
-            Button(action: { selectedTab = 5 }) {
+            Button(action: { selectedTab = 4 }) {
                 if let profile = userProfiles.first {
                     AthleteAvatarView(
                         imageData: profile.profileImageData,
@@ -237,7 +241,7 @@ struct TodayView: View {
     }
 
     private var todaySplitCard: some View {
-        Button(action: { selectedTab = 4 }) {
+        Button(action: { showingPlanner = true }) {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 HStack {
                     HStack(spacing: 6) {
