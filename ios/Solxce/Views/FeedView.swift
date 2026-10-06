@@ -133,6 +133,8 @@ struct FeedView: View {
     @State private var showingDirectMessages = false
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var selectedFilterCategory: AthleteType? = nil
+    @State private var recentSearches: [String] = ["marcus_lifts", "elena_runs", "kai_athletic"]
 
     private var unblockedPosts: [AthletePost] {
         postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
@@ -140,15 +142,23 @@ struct FeedView: View {
 
     private var matchingAthletes: [OtherAthleteProfile] {
         let allAthletes = Array(relationshipStore.athleteDirectory.values)
+        let filteredByType: [OtherAthleteProfile]
+        if let selectedType = selectedFilterCategory {
+            filteredByType = allAthletes.filter { $0.athleteType == selectedType }
+        } else {
+            filteredByType = allAthletes
+        }
+
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return allAthletes.filter { $0.handle != currentUserHandle }
+            return filteredByType.filter { $0.handle != currentUserHandle }
         }
         let query = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
-        return allAthletes.filter { athlete in
+        return filteredByType.filter { athlete in
             athlete.handle != currentUserHandle &&
             (athlete.handle.lowercased().contains(query) ||
              athlete.name.lowercased().contains(query) ||
-             athlete.athleteType.rawValue.lowercased().contains(query))
+             athlete.athleteType.rawValue.lowercased().contains(query) ||
+             athlete.bio.lowercased().contains(query))
         }
     }
 
