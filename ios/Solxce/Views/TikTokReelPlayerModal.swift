@@ -126,7 +126,7 @@ struct TikTokReelPlayerModal: View {
                                     Image(systemName: post.athleteType.iconName)
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(post.athleteType.badgeColor)
-                                raid: )
+                                )
 
                             VStack(alignment: .leading, spacing: 1) {
                                 HStack(spacing: 6) {
