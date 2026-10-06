@@ -131,11 +131,10 @@ public enum AppTheme {
     }
 
     // MARK: - Core Colors
-    /// Primary High Contrast Foreground
-    public static let primary = dynamicColor(
-        light: UIColor(red: 0.05, green: 0.05, blue: 0.06, alpha: 1.0),
-        dark: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
-    )
+    /// Primary Dynamic Accent / High-Contrast Theme Color
+    public static var primary: Color {
+        accent
+    }
 
     /// Dynamic Vibrant Accent Color
     public static var accent: Color {
