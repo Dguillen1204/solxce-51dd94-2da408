@@ -131,6 +131,7 @@ struct FeedView: View {
     @State private var shareSheetItem: ShareTextItem? = nil
     @State private var selectedOtherAthleteHandle: String? = nil
     @State private var showingDirectMessages = false
+    @State private var showingAthleteSearch = false
 
     private var unblockedPosts: [AthletePost] {
         postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
@@ -153,6 +154,14 @@ struct FeedView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
+                        Button {
+                            showingAthleteSearch = true
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+
                         Button {
                             showingDirectMessages = true
                         } label: {
@@ -183,6 +192,16 @@ struct FeedView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showingAthleteSearch) {
+                AthleteSearchModalSheet(
+                    onSelectAthlete: { handle in
+                        showingAthleteSearch = false
+                        if handle != currentUserHandle {
+                            selectedOtherAthleteHandle = handle
+                        }
+                    }
+                )
             }
             .sheet(isPresented: $showingDirectMessages) {
                 DirectMessagesInboxView()
@@ -758,4 +777,161 @@ struct ShareActivitySheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - Athlete Search Modal Sheet
+struct AthleteSearchModalSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
+    @ObservedObject private var postStore = FeedPostStore.shared
+    @State private var searchQuery: String = ""
+    let onSelectAthlete: (String) -> Void
+
+    // Gather unique mock / active athletes
+    private var allAthletes: [(name: String, handle: String, type: AthleteType, followers: Int, bio: String)] {
+        var list: [(name: String, handle: String, type: AthleteType, followers: Int, bio: String)] = [
+            ("Elena Vance", "elena_runs", .runner, 1420, "Marathoner & ultra runner. Sub-3 mission."),
+            ("Marcus Thorne", "marcus_lift", .strength, 2890, "Strength coach. Powerlifting & hypertrophy."),
+            ("Chloe Bennett", "chloe_hybrid", .hybrid, 950, "HYROX & functional fitness athlete."),
+            ("David Kim", "dk_endurance", .runner, 3100, "Trail runner & 100-mile finisher."),
+            ("Sarah Jenkins", "sarah_jenks", .strength, 820, "Olympic weightlifting & kettlebells."),
+            ("Alex Rivers", "rivers_flow", .hybrid, 1750, "CrossFit athlete & mobility coach."),
+            ("Mia Zhang", "mia_stride", .runner, 2400, "5k/10k speed specialist & track club captain.")
+        ]
+        // Add authors from feed posts if not already present
+        for post in postStore.posts {
+            if !list.contains(where: { $0.handle.lowercased() == post.authorHandle.lowercased() }) {
+                list.append((post.authorName, post.authorHandle, post.athleteType, 520, "Athlete on Solxce"))
+            }
+        }
+        return list
+    }
+
+    private var filteredAthletes: [(name: String, handle: String, type: AthleteType, followers: Int, bio: String)] {
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if trimmed.isEmpty {
+            return allAthletes
+        }
+        return allAthletes.filter {
+            $0.name.lowercased().contains(trimmed) ||
+            $0.handle.lowercased().contains(trimmed) ||
+            $0.type.rawValue.lowercased().contains(trimmed)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Search Input Bar
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    TextField("Search by name, handle, or sport...", text: $searchQuery)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .foregroundColor(.white)
+                    if !searchQuery.isEmpty {
+                        Button {
+                            searchQuery = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(AppTheme.panelGround)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
+
+                // Results list
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(filteredAthletes, id: \.handle) { athlete in
+                            Button {
+                                onSelectAthlete(athlete.handle)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    // Avatar
+                                    ZStack {
+                                        Circle()
+                                            .fill(athlete.type.badgeColor.opacity(0.2))
+                                            .frame(width: 46, height: 46)
+
+                                        Image(systemName: athlete.type.iconName)
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundColor(athlete.type.badgeColor)
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 6) {
+                                            Text(athlete.name)
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundColor(.white)
+
+                                            Text("@\(athlete.handle)")
+                                                .font(.system(size: 13))
+                                                .foregroundColor(.gray)
+                                        }
+
+                                        HStack(spacing: 8) {
+                                            Text(athlete.type.rawValue)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(athlete.type.badgeColor)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(athlete.type.badgeColor.opacity(0.15))
+                                                .clipShape(Capsule())
+
+                                            Text("\(athlete.followers) followers")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    // Follow / Following indicator
+                                    if relationshipStore.isFollowing(handle: athlete.handle) {
+                                        Text("Following")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.gray)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.white.opacity(0.08))
+                                            .clipShape(Capsule())
+                                    } else {
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                .padding(12)
+                                .background(AppTheme.panelGround)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                }
+            }
+            .background(AppTheme.ground.ignoresSafeArea())
+            .navigationTitle("Find Athletes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(AppTheme.primary)
+                }
+            }
+        }
+        .preferredColorScheme(AppAppearance(rawValue: UserDefaults.standard.string(forKey: "solxce_app_appearance") ?? "")?.colorScheme)
+    }
 }
