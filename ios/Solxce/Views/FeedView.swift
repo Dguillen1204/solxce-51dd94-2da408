@@ -375,7 +375,7 @@ struct FeedView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("RECENT SEARCHES")
-                                .font(AppTheme.metaFont)
+                                .font(AppTheme.eyebrowFont)
                                 .foregroundColor(AppTheme.textMuted)
                                 .tracking(1.2)
 
@@ -439,7 +439,7 @@ struct FeedView: View {
                 } else {
                     HStack {
                         Text(searchText.isEmpty ? (selectedFilterCategory == nil ? "ALL ATHLETES (\(matchingAthletes.count))" : "\(selectedFilterCategory?.rawValue.uppercased() ?? "") ATHLETES (\(matchingAthletes.count))") : "SEARCH RESULTS (\(matchingAthletes.count))")
-                            .font(AppTheme.metaFont)
+                            .font(AppTheme.eyebrowFont)
                             .foregroundColor(AppTheme.textMuted)
                             .tracking(1.2)
                         Spacer()
@@ -562,7 +562,7 @@ struct AthleteSearchResultRow: View {
 
                 // Follow / Following Quick Action Button
                 Button {
-                    relationshipStore.toggleFollow(handle: athlete.handle)
+                    relationshipStore.toggleFollow(for: athlete.handle)
                 } label: {
                     Text(isFollowing ? "Following" : "Follow")
                         .font(.system(size: 13, weight: .semibold))
