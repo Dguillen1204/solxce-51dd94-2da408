@@ -29,6 +29,7 @@ struct SettingsView: View {
     @State private var isShowingPaywall = false
     @State private var isShowingDeleteAccountAlert = false
     @State private var isShowingLegalSheet = false
+    @State private var isShowingPrivacyRules = false
     @State private var selectedLegalDoc: LegalDocumentView.DocumentType = .privacy
     @State private var saveSuccessToast = false
     @State private var passwordSuccessToast = false
@@ -67,6 +68,9 @@ struct SettingsView: View {
 
                     // MARK: - Security & Password
                     securitySection
+
+                    // MARK: - Privacy & Social Safety Rules
+                    privacyAndSafetySection
 
                     // MARK: - Payment & Credit Card Details
                     billingAndCardSection
@@ -120,7 +124,10 @@ struct SettingsView: View {
                 PaywallView()
             }
             .sheet(isPresented: $isShowingLegalSheet) {
-                LegalDocumentView(selectedDoc: selectedLegalDoc)
+                LegalDocumentView(documentType: selectedLegalDoc)
+            }
+            .sheet(isPresented: $isShowingPrivacyRules) {
+                PrivacyRulesSettingsView()
             }
             .alert("Delete Athlete Account", isPresented: $isShowingDeleteAccountAlert) {
                 Button("Cancel", role: .cancel) { }
@@ -530,6 +537,52 @@ struct SettingsView: View {
                 RoundedRectangle(cornerRadius: AppTheme.Radii.card)
                     .stroke(AppTheme.hairline, lineWidth: 1)
             )
+        }
+    }
+
+    // MARK: - Privacy & Safety Rules Section
+    private var privacyAndSafetySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader(title: "Privacy & Social Rules", subtitle: "Profile visibility, DMs, telemetry, and blocked users", icon: "hand.raised.fill")
+
+            Button {
+                isShowingPrivacyRules = true
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(AppTheme.primary.opacity(0.15))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(AppTheme.primary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Configure Privacy Rules")
+                            .font(AppTheme.headlineFont)
+                            .foregroundStyle(AppTheme.text)
+                        Text("Manage who can see your workouts, message permissions, and blocked accounts")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(2)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .padding(14)
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                        .stroke(AppTheme.hairline, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
