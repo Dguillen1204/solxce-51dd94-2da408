@@ -332,7 +332,7 @@ struct RunLogView: View {
                     }) {
                         Image(systemName: "location.fill")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppTheme.onPrimary)
                             .frame(width: 36, height: 36)
                             .background(AppTheme.primary)
                             .clipShape(Circle())
@@ -463,7 +463,7 @@ struct RunLogView: View {
                                     Text("TAP LAP")
                                 }
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(AppTheme.onPrimary)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(AppTheme.primary)
@@ -528,7 +528,7 @@ struct RunLogView: View {
                             Text("LOG LAP")
                         }
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppTheme.onPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background(AppTheme.primary)
@@ -583,7 +583,7 @@ struct RunLogView: View {
                             Text("START RUN")
                         }
                         .font(AppTheme.headlineFont)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppTheme.onPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.primary)
@@ -629,7 +629,7 @@ struct RunLogView: View {
                             Text("RESUME")
                         }
                         .font(AppTheme.headlineFont)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppTheme.onPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.primary)
@@ -953,7 +953,7 @@ struct RunRouteDetailSheet: View {
                                 }
                                 .font(AppTheme.subheadlineFont)
                                 .bold()
-                                .foregroundStyle(.black)
+                                .foregroundStyle(AppTheme.onPrimary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .background(AppTheme.primary)
@@ -1090,7 +1090,7 @@ struct RunRouteDetailSheet: View {
                             Text("Post Run to Community Feed")
                         }
                         .font(AppTheme.headlineFont)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppTheme.onPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(AppTheme.primary)
