@@ -110,7 +110,6 @@ struct CreateMediaPostSheet: View {
                     alignment: $textAlignment
                 )
             }
-            }
         }
         .preferredColorScheme(.dark)
     }
