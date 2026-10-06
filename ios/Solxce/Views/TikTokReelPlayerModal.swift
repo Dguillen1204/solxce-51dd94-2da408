@@ -266,13 +266,13 @@ struct TikTokReelPlayerModal: View {
                 }
 
                 if let sticker = post.textOverlay, !sticker.isEmpty {
-                    Text(sticker)
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
-                        .foregroundColor(AppTheme.primary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.75))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    TikTokTextBadgeView(
+                        text: sticker,
+                        fontStyle: .neon,
+                        highlightMode: .filled,
+                        textColor: Color(hex: "#CCFF00"),
+                        fontSize: 16
+                    )
                 }
             }
         }

@@ -547,13 +547,13 @@ struct SimplePostCardView: View {
                 }
 
                 if let sticker = post.textOverlay, !sticker.isEmpty {
-                    Text(sticker)
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
-                        .foregroundColor(AppTheme.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.black.opacity(0.75))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    TikTokTextBadgeView(
+                        text: sticker,
+                        fontStyle: .neon,
+                        highlightMode: .filled,
+                        textColor: Color(hex: "#CCFF00"),
+                        fontSize: 14
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
