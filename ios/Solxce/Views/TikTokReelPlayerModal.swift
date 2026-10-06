@@ -34,10 +34,11 @@ struct TikTokReelPlayerModal: View {
                     .ignoresSafeArea()
             }
 
-            // Top Overlay: Dismiss & Music Soundtrack Indicator
+            // Top Overlay: Dismiss & Music Soundtrack Indicator (tap to hear / toggle audio preview)
             VStack {
                 HStack(alignment: .center, spacing: 12) {
                     Button {
+                        AudioPreviewEngine.shared.stop()
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
@@ -49,24 +50,32 @@ struct TikTokReelPlayerModal: View {
                     }
 
                     if let audio = post.audioTrack {
-                        HStack(spacing: 6) {
-                            Image(systemName: audio.platform.iconName)
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(audio.platform.brandColor)
+                        Button {
+                            AudioPreviewEngine.shared.togglePlayPause(for: audio)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: audio.platform.iconName)
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(audio.platform.brandColor)
 
-                            EqualizerAnimationView()
-                                .frame(width: 12, height: 10)
-                                .foregroundColor(AppTheme.primary)
+                                EqualizerAnimationView()
+                                    .frame(width: 12, height: 10)
+                                    .foregroundColor(AppTheme.primary)
 
-                            Text("\(audio.title) · \(audio.artist)")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
+                                Text("\(audio.title) · \(audio.artist)")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+
+                                Image(systemName: AudioPreviewEngine.shared.currentlyPlayingTrack?.id == audio.id && AudioPreviewEngine.shared.isPlaying ? "speaker.wave.3.fill" : "speaker.slash.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(AppTheme.primary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.black.opacity(0.55))
+                            .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.55))
-                        .clipShape(Capsule())
                     }
 
                     Spacer()
@@ -117,7 +126,7 @@ struct TikTokReelPlayerModal: View {
                                     Image(systemName: post.athleteType.iconName)
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(post.athleteType.badgeColor)
-                                )
+                                raid: )
 
                             VStack(alignment: .leading, spacing: 1) {
                                 HStack(spacing: 6) {
@@ -230,6 +239,14 @@ struct TikTokReelPlayerModal: View {
                 withAnimation { showHeartBurst = false }
             }
         }
+        .onAppear {
+            if let track = post.audioTrack {
+                AudioPreviewEngine.shared.playTrackPreview(track)
+            }
+        }
+        .onDisappear {
+            AudioPreviewEngine.shared.stop()
+        }
         .sheet(isPresented: $showCommentSheet) {
             commentsDrawer
         }
@@ -239,41 +256,62 @@ struct TikTokReelPlayerModal: View {
     // MARK: - Full Screen Media Canvas
     private func fullScreenMediaCanvas(for item: PostMediaItem) -> some View {
         ZStack {
-            LinearGradient(
-                colors: item.gradientColors.isEmpty ? post.gradientColors : item.gradientColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            if let imgData = item.customImageData, let uiImage = UIImage(data: imgData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                LinearGradient(
+                    colors: item.gradientColors.isEmpty ? post.gradientColors : item.gradientColors,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
 
-            VStack(spacing: 16) {
-                Circle()
-                    .fill(post.athleteType.badgeColor.opacity(0.18))
-                    .frame(width: 110, height: 110)
-                    .overlay(
-                        Image(systemName: item.iconName)
-                            .font(.system(size: 52, weight: .bold))
-                            .foregroundColor(post.athleteType.badgeColor)
-                    )
+                VStack(spacing: 16) {
+                    Circle()
+                        .fill(post.athleteType.badgeColor.opacity(0.18))
+                        .frame(width: 100, height: 100)
+                        .overlay(
+                            Image(systemName: item.iconName)
+                                .font(.system(size: 46, weight: .bold))
+                                .foregroundColor(post.athleteType.badgeColor)
+                        )
 
-                if let sub = item.subtitle, !sub.isEmpty {
-                    Text(sub)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white.opacity(0.9))
-                        .padding(.horizontal, 14)
+                    VStack(spacing: 6) {
+                        Text(item.title)
+                            .font(.system(size: 24, weight: .black))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+
+                        if let subtitle = item.subtitle {
+                            Text(subtitle)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(AppTheme.silver)
+                        }
+                    }
+
+                    if item.isVideo {
+                        HStack(spacing: 6) {
+                            Image(systemName: "video.fill")
+                            Text("SOLXCE 4K REEL")
+                                .font(.system(size: 11, weight: .black))
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.5))
+                        .background(AppTheme.primary)
                         .clipShape(Capsule())
+                    }
                 }
+            }
 
-                if let sticker = post.textOverlay, !sticker.isEmpty {
-                    TikTokTextBadgeView(
-                        text: sticker,
-                        fontStyle: .neon,
-                        highlightMode: .filled,
-                        textColor: Color(hex: "#CCFF00"),
-                        fontSize: 16
-                    )
-                }
+            // Video Filter Tint Overlay
+            if post.videoFilter != .normal {
+                post.videoFilter.tintColor
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -281,64 +319,106 @@ struct TikTokReelPlayerModal: View {
     // MARK: - Comments Drawer Sheet
     private var commentsDrawer: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                List {
-                    ForEach(post.comments) { comment in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(comment.author)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(AppTheme.text)
-                                Spacer()
-                                Text(comment.timeAgo)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(AppTheme.textMuted)
-                            }
-                            Text(comment.text)
-                                .font(.system(size: 13))
-                                .foregroundColor(AppTheme.textSecondary)
+            ZStack {
+                AppTheme.surface.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    if post.comments.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(.system(size: 36))
+                                .foregroundColor(AppTheme.silver)
+                            Text("No comments yet")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("Be the first athlete to hype this post up!")
+                                .font(.system(size: 12))
+                                .foregroundColor(AppTheme.silver)
                         }
-                        .listRowBackground(AppTheme.surface)
-                        .padding(.vertical, 4)
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        List {
+                            ForEach(post.comments) { comment in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Circle()
+                                        .fill(AppTheme.surfaceRaised)
+                                        .frame(width: 32, height: 32)
+                                        .overlay(
+                                            Text(String(comment.authorName.prefix(1)))
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundColor(AppTheme.primary)
+                                        )
 
-                // Add Comment Input
-                HStack(spacing: 10) {
-                    TextField("Add a comment...", text: $newCommentText)
-                        .font(AppTheme.bodyFont)
-                        .padding(10)
-                        .background(AppTheme.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 6) {
+                                            Text(comment.authorName)
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundColor(.white)
+                                            Text(comment.timeAgo)
+                                                .font(.system(size: 10))
+                                                .foregroundColor(AppTheme.silver)
+                                        }
 
-                    Button {
-                        guard !newCommentText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                        let comment = PostComment(
-                            author: "you",
-                            athleteType: post.athleteType,
-                            text: newCommentText,
-                            timeAgo: "Just now"
-                        )
-                        onAddComment(comment)
-                        newCommentText = ""
-                    } label: {
-                        Text("Post")
-                            .font(AppTheme.headlineFont)
-                            .foregroundColor(AppTheme.primary)
+                                        Text(comment.text)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.white)
+                                    }
+
+                                    Spacer()
+
+                                    Button {
+                                        // Like comment
+                                    } label: {
+                                        Image(systemName: "heart")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(AppTheme.silver)
+                                    }
+                                }
+                                .listRowBackground(AppTheme.surface)
+                                .listRowSeparatorTint(AppTheme.hairline)
+                            }
+                        }
+                        .listStyle(.plain)
                     }
+
+                    // Comment Input Bar
+                    HStack(spacing: 10) {
+                        TextField("Add a comment...", text: $newCommentText)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(AppTheme.surfaceRaised)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        Button {
+                            guard !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                            let comment = PostComment(
+                                authorName: "You",
+                                text: newCommentText,
+                                timeAgo: "Just now"
+                            )
+                            post.comments.append(comment)
+                            onAddComment(comment)
+                            newCommentText = ""
+                        } label: {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(newCommentText.isEmpty ? AppTheme.silver : AppTheme.primary)
+                        }
+                        .disabled(newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding(12)
+                    .background(AppTheme.surface)
                 }
-                .padding(16)
-                .background(AppTheme.surfaceRaised)
             }
-            .background(AppTheme.ground.ignoresSafeArea())
             .navigationTitle("Comments (\(post.comments.count))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { showCommentSheet = false }
-                        .foregroundColor(AppTheme.textSecondary)
+                    Button("Done") {
+                        showCommentSheet = false
+                    }
+                    .foregroundColor(AppTheme.silver)
                 }
             }
         }
