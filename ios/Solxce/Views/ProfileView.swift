@@ -11,6 +11,7 @@ struct ProfileView: View {
     @ObservedObject private var subManager = SubscriptionManager.shared
     @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var postStore = FeedPostStore.shared
+    @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
 
     @State private var showingEditGoals = false
@@ -22,6 +23,8 @@ struct ProfileView: View {
     @State private var showingWatchHub = false
     @State private var showingSettings = false
     @State private var showingSchedulePlanner = false
+    @State private var showingPrivacyRulesSheet = false
+    @State private var showingDirectMessages = false
 
     // Profile Post Grid navigation state
     enum ProfileMediaTab: String, CaseIterable {
@@ -156,6 +159,31 @@ struct ProfileView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
                         Button {
+                            showingDirectMessages = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bubble.left.and.bubble.right.fill")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.white)
+
+                                if relationshipStore.conversations.contains(where: { $0.unreadCount > 0 }) {
+                                    Circle()
+                                        .fill(AppTheme.primary)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 3, y: -3)
+                                }
+                            }
+                        }
+
+                        Button {
+                            showingPrivacyRulesSheet = true
+                        } label: {
+                            Image(systemName: "shield.lefthalf.filled")
+                                .font(.system(size: 15))
+                                .foregroundStyle(AppTheme.primary)
+                        }
+
+                        Button {
                             showingNewPostSheet = true
                         } label: {
                             Image(systemName: "plus.square.fill")
@@ -195,6 +223,12 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingWatchHub) {
                 AppleWatchHubView()
+            }
+            .sheet(isPresented: $showingPrivacyRulesSheet) {
+                PrivacySettingsView()
+            }
+            .sheet(isPresented: $showingDirectMessages) {
+                DirectMessagesInboxView()
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
