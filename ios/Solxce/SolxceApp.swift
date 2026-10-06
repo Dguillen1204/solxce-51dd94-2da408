@@ -51,6 +51,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("solxce_has_completed_athlete_signup") private var hasCompletedSignup: Bool = false
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
+    @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
 
     @State private var selectedTab: Int = 0
     @State private var showAICoachSheet: Bool = false
@@ -58,6 +59,10 @@ struct ContentView: View {
 
     private var currentAppearance: AppAppearance {
         AppAppearance(rawValue: appAppearanceRaw) ?? .system
+    }
+
+    private var currentAccent: AppAccentColor {
+        AppAccentColor(rawValue: selectedAccentRaw) ?? .volt
     }
 
     var body: some View {
@@ -93,7 +98,7 @@ struct ContentView: View {
                     }
                     .tag(4)
             }
-            .tint(AppTheme.primary)
+            .tint(currentAccent.color)
 
             // Floating AI Assistant Circle Button (Bottom Right)
             floatingAIButton
@@ -126,23 +131,16 @@ struct ContentView: View {
                 // Outer glow shadow ring
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [
-                                AppTheme.primary,
-                                AppTheme.accent
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        currentAccent.gradient
                     )
                     .frame(width: 52, height: 52)
-                    .shadow(color: AppTheme.accent.opacity(0.35), radius: 10, x: 0, y: 4)
+                    .shadow(color: currentAccent.color.opacity(0.45), radius: 10, x: 0, y: 4)
 
                 // Sparkle / AI icon with pulse badge
                 VStack(spacing: 0) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 20, weight: .black))
-                        .foregroundStyle(Color.black)
+                        .foregroundStyle(currentAccent == .monochrome ? Color.white : Color.black)
                 }
 
                 // AI small sub-badge
@@ -158,7 +156,7 @@ struct ContentView: View {
                             .clipShape(Capsule())
                             .overlay(
                                 Capsule()
-                                    .stroke(AppTheme.accent, lineWidth: 1)
+                                    .stroke(currentAccent.color, lineWidth: 1)
                             )
                             .offset(x: 4, y: -4)
                     }
