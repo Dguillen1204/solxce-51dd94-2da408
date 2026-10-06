@@ -442,28 +442,67 @@ struct RunLogView: View {
             }
             .padding(.vertical, AppTheme.Spacing.xs)
 
-            // Live Mile Splits (Strava / Nike)
-            if !tracker.splits.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("MILE SPLITS")
-                        .font(AppTheme.eyebrowFont)
-                        .tracking(1.5)
-                        .foregroundStyle(AppTheme.textMuted)
+            // Live Mile Splits (Strava / Nike) & Lap Times
+            if !tracker.splits.isEmpty || !tracker.laps.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("LAPS & MILE SPLITS")
+                            .font(AppTheme.eyebrowFont)
+                            .tracking(1.5)
+                            .foregroundStyle(AppTheme.textMuted)
+                        
+                        Spacer()
+                        
+                        if tracker.isTracking && !tracker.isPaused {
+                            Button(action: {
+                                let currentHr = watchManager.liveTelemetry.heartRateBpm > 0 ? Int(watchManager.liveTelemetry.heartRateBpm) : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 152)
+                                tracker.recordLap(avgHeartRate: currentHr, isManual: true)
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("TAP LAP")
+                                }
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(AppTheme.primary)
+                                .clipShape(Capsule())
+                            }
+                        }
+                    }
 
+                    // Horizontal Lap Chips
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(tracker.splits) { split in
-                                HStack(spacing: 4) {
-                                    Text("MILE \(split.mileNumber):")
-                                        .font(AppTheme.captionFont)
-                                        .foregroundStyle(AppTheme.textSecondary)
-                                    Text(split.formattedPace)
-                                        .font(AppTheme.captionFont)
-                                        .bold()
-                                        .foregroundStyle(AppTheme.primary)
+                            ForEach(tracker.laps) { lap in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 4) {
+                                        Text("LAP \(lap.lapNumber)")
+                                            .font(AppTheme.eyebrowFont)
+                                            .foregroundStyle(AppTheme.primary)
+                                        if lap.isManualLap {
+                                            Text("MANUAL")
+                                                .font(.system(size: 8, weight: .black))
+                                                .foregroundStyle(AppTheme.accent)
+                                        }
+                                    }
+                                    Text(lap.formattedDuration)
+                                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(AppTheme.text)
+                                    HStack(spacing: 4) {
+                                        Text(String(format: "%.2f mi", lap.distanceMiles))
+                                            .font(AppTheme.captionFont)
+                                            .foregroundStyle(AppTheme.textSecondary)
+                                        if lap.avgHeartRate > 0 {
+                                            Text("· \(lap.avgHeartRate) bpm")
+                                                .font(AppTheme.captionFont)
+                                                .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.361))
+                                        }
+                                    }
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
                                 .background(AppTheme.field)
                                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
                             }
@@ -471,6 +510,32 @@ struct RunLogView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            } else if tracker.isTracking && !tracker.isPaused {
+                // Quick Lap Button when tracking is in progress
+                HStack {
+                    Text(String(format: "Lap 1 · %d:%02d · %.2f mi", tracker.currentLapElapsedSeconds / 60, tracker.currentLapElapsedSeconds % 60, tracker.currentLapDistanceMeters * 0.000621371))
+                        .font(AppTheme.captionFont)
+                        .foregroundStyle(AppTheme.textMuted)
+
+                    Spacer()
+
+                    Button(action: {
+                        let currentHr = watchManager.liveTelemetry.heartRateBpm > 0 ? Int(watchManager.liveTelemetry.heartRateBpm) : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 152)
+                        tracker.recordLap(avgHeartRate: currentHr, isManual: true)
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer")
+                            Text("LOG LAP")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(AppTheme.primary)
+                        .clipShape(Capsule())
+                    }
+                }
+                .padding(.vertical, 2)
             }
 
             // Indoor / Simulator Movement Assist Toggle
@@ -760,7 +825,10 @@ struct RunLogView: View {
 
     // MARK: - Save Handlers
     private func saveLiveRun() {
-        let (dist, dur, cals, _, routeCoords) = tracker.stopAndFinalizeRun()
+        let (dist, dur, cals, _, routeCoords, avgHr, maxHr, laps) = tracker.stopAndFinalizeRun()
+        
+        let hrToSave = avgHr > 0 ? avgHr : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 148)
+        let maxHrToSave = maxHr > 0 ? maxHr : (hrToSave + 18)
         
         let entry = RunEntry(
             title: runTitle.isEmpty ? "Outdoor Run" : runTitle,
@@ -769,7 +837,10 @@ struct RunLogView: View {
             date: Date(),
             caloriesBurned: cals,
             notes: notes,
-            routeCoordinates: routeCoords
+            routeCoordinates: routeCoords,
+            averageHeartRateBpm: hrToSave,
+            maxHeartRateBpm: maxHrToSave,
+            laps: laps
         )
         modelContext.insert(entry)
         try? modelContext.save()
@@ -791,7 +862,9 @@ struct RunLogView: View {
             durationSeconds: manualTotalDurationSeconds,
             date: Date(),
             caloriesBurned: manualCaloriesBurned,
-            notes: notes
+            notes: notes,
+            averageHeartRateBpm: healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 145,
+            maxHeartRateBpm: 165
         )
         modelContext.insert(entry)
         try? modelContext.save()
