@@ -519,44 +519,52 @@ struct SimplePostCardView: View {
     // MARK: - Slide View for Individual Carousel Item or Video
     private func mediaSlideView(for item: PostMediaItem) -> some View {
         ZStack {
-            LinearGradient(
-                colors: item.gradientColors.isEmpty ? post.gradientColors : item.gradientColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            if let customData = item.customImageData, let uiImage = UIImage(data: customData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                LinearGradient(
+                    colors: item.gradientColors.isEmpty ? post.gradientColors : item.gradientColors,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
 
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(post.athleteType.badgeColor.opacity(0.18))
-                        .frame(width: 84, height: 84)
+                VStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(post.athleteType.badgeColor.opacity(0.18))
+                            .frame(width: 84, height: 84)
 
-                    Image(systemName: item.iconName)
-                        .font(.system(size: 40, weight: .bold))
-                        .foregroundColor(post.athleteType.badgeColor)
+                        Image(systemName: item.iconName)
+                            .font(.system(size: 40, weight: .bold))
+                            .foregroundColor(post.athleteType.badgeColor)
+                    }
+
+                    if let sub = item.subtitle, !sub.isEmpty {
+                        Text(sub)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.55))
+                            .clipShape(Capsule())
+                    }
+
+                    if let sticker = post.textOverlay, !sticker.isEmpty {
+                        TikTokTextBadgeView(
+                            text: sticker,
+                            fontStyle: .neon,
+                            highlightMode: .filled,
+                            textColor: Color(hex: "#CCFF00"),
+                            fontSize: 14
+                        )
+                    }
                 }
-
-                if let sub = item.subtitle, !sub.isEmpty {
-                    Text(sub)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white.opacity(0.85))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.55))
-                        .clipShape(Capsule())
-                }
-
-                if let sticker = post.textOverlay, !sticker.isEmpty {
-                    TikTokTextBadgeView(
-                        text: sticker,
-                        fontStyle: .neon,
-                        highlightMode: .filled,
-                        textColor: Color(hex: "#CCFF00"),
-                        fontSize: 14
-                    )
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
