@@ -96,8 +96,8 @@ struct CreateMediaPostSheet: View {
                 AudioPickerSheet(selectedAudio: $selectedAudio)
             }
             .sheet(isPresented: $showingScreenLibraryPicker) {
-                ScreenLibraryPickerSheet(onSelect: { preset in
-                    selectedMediaPreset = preset
+                ScreenLibraryPickerSheet(onSelectScreen: { item in
+                    insertScreenLibraryItem(item)
                 })
             }
             .fullScreenCover(isPresented: $showingTextEditorSheet) {
