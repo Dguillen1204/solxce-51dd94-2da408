@@ -5,9 +5,16 @@ import SwiftData
 @main
 struct SolxceApp: App {
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
+    @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
 
     init() {
-        // Standardize TabBar appearance with solid obsidian ground & hairline top border matching screenshot 3
+        // Initial setup for TabBar appearance
+        let rawAccent = UserDefaults.standard.string(forKey: AppTheme.activeAccentKey) ?? AppAccentColor.volt.rawValue
+        let accent = AppAccentColor(rawValue: rawAccent) ?? .volt
+        SolxceApp.updateTabBarAppearance(for: accent)
+    }
+
+    public static func updateTabBarAppearance(for accent: AppAccentColor) {
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
         appearance.backgroundColor = UIColor(Color(hex: "#0A0A0C"))
@@ -18,8 +25,9 @@ struct SolxceApp: App {
         normalItem.titleTextAttributes = [.foregroundColor: UIColor(Color.white.opacity(0.45))]
         
         let selectedItem = appearance.stackedLayoutAppearance.selected
-        selectedItem.iconColor = UIColor(Color(hex: "#CCFF00"))
-        selectedItem.titleTextAttributes = [.foregroundColor: UIColor(Color(hex: "#CCFF00"))]
+        let accentUIColor = UIColor(accent.color)
+        selectedItem.iconColor = accentUIColor
+        selectedItem.titleTextAttributes = [.foregroundColor: accentUIColor]
         
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
@@ -29,10 +37,21 @@ struct SolxceApp: App {
         AppAppearance(rawValue: appAppearanceRaw) ?? .system
     }
 
+    private var currentAccent: AppAccentColor {
+        AppAccentColor(rawValue: selectedAccentRaw) ?? .volt
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(currentAppearance.colorScheme)
+                .onAppear {
+                    SolxceApp.updateTabBarAppearance(for: currentAccent)
+                }
+                .onChange(of: selectedAccentRaw) { newRaw in
+                    let newAccent = AppAccentColor(rawValue: newRaw) ?? .volt
+                    SolxceApp.updateTabBarAppearance(for: newAccent)
+                }
         }
         .modelContainer(for: [
             UserProfile.self,
