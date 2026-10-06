@@ -150,12 +150,16 @@ struct OtherUserProfileView: View {
             .sheet(isPresented: $showDirectMessageView) {
                 ConversationChatView(profile: profile)
             }
-            .sheet(item: $selectedPostDetailID) { postID in
-                if let post = postStore.posts.first(where: { $0.id == postID }) {
+            .sheet(isPresented: Binding(
+                get: { selectedPostDetailID != nil },
+                set: { if !$0 { selectedPostDetailID = nil } }
+            )) {
+                if let postID = selectedPostDetailID {
                     PostDetailModalSheet(
-                        post: post,
-                        onOpenReel: {
-                            activeReelPost = post
+                        postID: postID,
+                        onOpenReel: { reelPost in
+                            selectedPostDetailID = nil
+                            activeReelPost = reelPost
                         }
                     )
                 }
