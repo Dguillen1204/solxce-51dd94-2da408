@@ -124,7 +124,7 @@ struct SettingsView: View {
                 PaywallView()
             }
             .sheet(isPresented: $isShowingLegalSheet) {
-                LegalDocumentView(documentType: selectedLegalDoc)
+                LegalDocumentView(selectedDoc: selectedLegalDoc)
             }
             .sheet(isPresented: $isShowingPrivacyRules) {
                 PrivacyRulesSettingsView()
