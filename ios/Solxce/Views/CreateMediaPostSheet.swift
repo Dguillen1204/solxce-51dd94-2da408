@@ -729,20 +729,20 @@ struct CreateMediaPostSheet: View {
             authorName: "You",
             authorHandle: "athlete_you",
             athleteType: selectedAthleteType,
-            mediaType: finalMedia.contains(where: { $0.isVideo }) ? .video : .photo,
-            mediaTitle: workoutTag,
-            mediaSubtitle: workoutStats,
-            mediaIconName: selectedPreset.systemIcon,
-            gradientColors: selectedPreset.gradientColors,
-            caption: finalCaption,
+            timeAgo: "Just now",
             workoutTag: workoutTag,
             workoutStats: workoutStats,
+            caption: finalCaption,
+            imageName: selectedPreset.systemIcon,
+            mediaType: finalMedia.contains(where: { $0.isVideo }) ? .video : .photo,
+            mediaItems: finalMedia,
+            mediaIconName: selectedPreset.systemIcon,
+            gradientColors: selectedPreset.gradientColors,
+            audioTrack: selectedAudioTrack,
+            textOverlay: nil,
             likesCount: 1,
             isLiked: true,
-            comments: [],
-            audioTrack: selectedAudioTrack,
-            mediaItems: finalMedia,
-            videoFilter: activeFilter
+            comments: []
         )
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
