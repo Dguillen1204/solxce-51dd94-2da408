@@ -130,40 +130,15 @@ struct OtherUserProfileView: View {
                 }
             }
             .confirmationDialog("Options for @\(profile.handle)", isPresented: $showActionMenu, titleVisibility: .visible) {
-                if profile.isBlocked {
-                    Button("Unblock Athlete", role: .none) {
-                        showUnblockConfirmation = true
-                    }
-                } else {
-                    Button(profile.isFollowing ? "Unfollow @\(profile.handle)" : "Follow @\(profile.handle)") {
-                        relationshipStore.toggleFollow(for: profile.handle)
-                    }
-
-                    Button("Block Athlete", role: .destructive) {
-                        showBlockConfirmation = true
-                    }
-                }
-                
-                Button("Report Account", role: .destructive) {
-                    privacyNoticeMessage = "Report submitted. Our community moderation team will review this profile within 24 hours."
-                    showPrivacyNoticeAlert = true
-                }
-
-                Button("Cancel", role: .cancel) {}
+                actionMenuButtons
             }
             .alert("Block @\(profile.handle)?", isPresented: $showBlockConfirmation) {
-                Button("Block", role: .destructive) {
-                    relationshipStore.blockUser(handle: profile.handle)
-                }
-                Button("Cancel", role: .cancel) {}
+                blockAlertButtons
             } message: {
                 Text("They won't be able to message you, view your profile, or find your posts on Solxce. They won't be notified that you blocked them.")
             }
             .alert("Unblock @\(profile.handle)?", isPresented: $showUnblockConfirmation) {
-                Button("Unblock") {
-                    relationshipStore.unblockUser(handle: profile.handle)
-                }
-                Button("Cancel", role: .cancel) {}
+                unblockAlertButtons
             } message: {
                 Text("They will be able to see your public workouts and send you messages based on your privacy rules.")
             }
@@ -196,6 +171,46 @@ struct OtherUserProfileView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var actionMenuButtons: some View {
+        if profile.isBlocked {
+            Button("Unblock Athlete", role: .none) {
+                showUnblockConfirmation = true
+            }
+        } else {
+            Button(profile.isFollowing ? "Unfollow @\(profile.handle)" : "Follow @\(profile.handle)") {
+                relationshipStore.toggleFollow(for: profile.handle)
+            }
+
+            Button("Block Athlete", role: .destructive) {
+                showBlockConfirmation = true
+            }
+        }
+
+        Button("Report Account", role: .destructive) {
+            privacyNoticeMessage = "Report submitted. Our community moderation team will review this profile within 24 hours."
+            showPrivacyNoticeAlert = true
+        }
+
+        Button("Cancel", role: .cancel) {}
+    }
+
+    @ViewBuilder
+    private var blockAlertButtons: some View {
+        Button("Block", role: .destructive) {
+            relationshipStore.blockUser(handle: profile.handle)
+        }
+        Button("Cancel", role: .cancel) {}
+    }
+
+    @ViewBuilder
+    private var unblockAlertButtons: some View {
+        Button("Unblock") {
+            relationshipStore.unblockUser(handle: profile.handle)
+        }
+        Button("Cancel", role: .cancel) {}
     }
 
     // MARK: - Blocked State View
@@ -467,7 +482,7 @@ struct OtherUserProfileView: View {
                 } else {
                     FeedProfileGrid(
                         items: postGridItems,
-                        onSelectItem: { item in
+                        onSelect: { item in
                             selectedPostDetailID = item.postID
                         }
                     )
@@ -479,7 +494,7 @@ struct OtherUserProfileView: View {
                 } else {
                     FeedProfileGrid(
                         items: reelGridItems,
-                        onSelectItem: { item in
+                        onSelect: { item in
                             if let found = authorReels.first(where: { $0.id == item.postID }) {
                                 activeReelPost = found
                             }

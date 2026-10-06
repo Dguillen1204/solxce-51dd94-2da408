@@ -16,6 +16,8 @@ public enum AthleteType: String, CaseIterable, Codable, Identifiable {
 
     public var id: String { rawValue }
 
+    public var displayName: String { rawValue }
+
     public var iconName: String {
         switch self {
         case .hybrid: return "bolt.shield.fill"
