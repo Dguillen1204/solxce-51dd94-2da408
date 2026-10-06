@@ -123,7 +123,6 @@ struct FeedView: View {
     }
 
     @ObservedObject private var postStore = FeedPostStore.shared
-    @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
 
     // Active full screen reel modal
     @State private var activeReelPost: AthletePost? = nil
