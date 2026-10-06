@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var isShowingEditCardSheet = false
     @State private var isShowingPaywall = false
     @State private var isShowingDeleteAccountAlert = false
+    @State private var isShowingPrivacyRulesSheet = false
     @State private var isShowingLegalSheet = false
     @State private var selectedLegalDoc: LegalDocumentView.DocumentType = .privacy
     @State private var saveSuccessToast = false
@@ -68,6 +69,9 @@ struct SettingsView: View {
                     // MARK: - Security & Password
                     securitySection
 
+                    // MARK: - Privacy & Social Safety Rules
+                    privacyRulesSettingsCard
+
                     // MARK: - Payment & Credit Card Details
                     billingAndCardSection
 
@@ -95,6 +99,9 @@ struct SettingsView: View {
             }
             .onAppear {
                 loadProfileData()
+            }
+            .sheet(isPresented: $isShowingPrivacyRulesSheet) {
+                PrivacySettingsView()
             }
             .sheet(isPresented: $isShowingPasswordChangeSheet) {
                 ChangePasswordSheet(
@@ -457,6 +464,51 @@ struct SettingsView: View {
     }
 
     // MARK: - Security & Password Section
+    private var privacyRulesSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader(title: "Privacy & Social Rules", subtitle: "Direct message permissions, visibility & blocked accounts", icon: "hand.raised.fill")
+
+            Button {
+                isShowingPrivacyRulesSheet = true
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.purple.opacity(0.12))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: "shield.lefthalf.filled")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.purple)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Privacy Controls & Blocked Accounts")
+                            .font(AppTheme.bodyFont.weight(.semibold))
+                            .foregroundStyle(AppTheme.text)
+                        Text("Private profile, message permissions, workout sharing")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .padding(.horizontal, AppTheme.Spacing.cardPadding)
+                .padding(.vertical, 14)
+                .background(AppTheme.card)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card)
+                        .stroke(AppTheme.hairline, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var securitySection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionHeader(title: "Security & Credentials", subtitle: "Manage authentication and password protection", icon: "lock.shield.fill")
