@@ -791,11 +791,11 @@ struct AthleteSearchModalSheet: View {
     private var allAthletes: [(name: String, handle: String, type: AthleteType, followers: Int, bio: String)] {
         var list: [(name: String, handle: String, type: AthleteType, followers: Int, bio: String)] = [
             ("Elena Vance", "elena_runs", .runner, 1420, "Marathoner & ultra runner. Sub-3 mission."),
-            ("Marcus Thorne", "marcus_lift", .strength, 2890, "Strength coach. Powerlifting & hypertrophy."),
+            ("Marcus Thorne", "marcus_lift", .powerlifter, 2890, "Strength coach. Powerlifting & hypertrophy."),
             ("Chloe Bennett", "chloe_hybrid", .hybrid, 950, "HYROX & functional fitness athlete."),
             ("David Kim", "dk_endurance", .runner, 3100, "Trail runner & 100-mile finisher."),
-            ("Sarah Jenkins", "sarah_jenks", .strength, 820, "Olympic weightlifting & kettlebells."),
-            ("Alex Rivers", "rivers_flow", .hybrid, 1750, "CrossFit athlete & mobility coach."),
+            ("Sarah Jenkins", "sarah_jenks", .powerlifter, 820, "Olympic weightlifting & kettlebells."),
+            ("Alex Rivers", "rivers_flow", .functional, 1750, "CrossFit athlete & mobility coach."),
             ("Mia Zhang", "mia_stride", .runner, 2400, "5k/10k speed specialist & track club captain.")
         ]
         // Add authors from feed posts if not already present
@@ -841,7 +841,7 @@ struct AthleteSearchModalSheet: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(AppTheme.panelGround)
+                .background(AppTheme.field)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -910,7 +910,7 @@ struct AthleteSearchModalSheet: View {
                                     }
                                 }
                                 .padding(12)
-                                .background(AppTheme.panelGround)
+                                .background(AppTheme.surface)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
                             .buttonStyle(.plain)
