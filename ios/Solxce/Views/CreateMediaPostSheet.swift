@@ -96,9 +96,20 @@ struct CreateMediaPostSheet: View {
                 AudioPickerSheet(selectedAudio: $selectedAudio)
             }
             .sheet(isPresented: $showingScreenLibraryPicker) {
-                ScreenLibraryPickerSheet { item in
-                    insertScreenLibraryItem(item)
-                }
+                ScreenLibraryPickerSheet(onSelect: { preset in
+                    selectedMediaPreset = preset
+                })
+            }
+            .fullScreenCover(isPresented: $showingTextEditorSheet) {
+                TikTokTextEditorSheet(
+                    text: $textOverlay,
+                    fontStyle: $fontStyle,
+                    highlightMode: $highlightMode,
+                    selectedColorHex: $textColorHex,
+                    fontSize: $fontSize,
+                    alignment: $textAlignment
+                )
+            }
             }
         }
         .preferredColorScheme(.dark)
