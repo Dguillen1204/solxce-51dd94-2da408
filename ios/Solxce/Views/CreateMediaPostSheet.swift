@@ -1074,13 +1074,14 @@ struct CreateMediaPostSheet: View {
         let textStickerData: TikTokTextStickerData? = imageOverlayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : TikTokTextStickerData(
             text: imageOverlayText,
             fontStyle: overlayFontStyle,
-            highlightMode: overlayHasBackground ? TikTokHighlightMode.filled.rawValue : TikTokHighlightMode.classic.rawValue,
+            highlightMode: overlayHasBackground ? TikTokHighlightMode.filled.rawValue : TikTokHighlightMode.transparent.rawValue,
             colorHex: overlayColorHex,
+            fontSize: textFontSize,
+            alignment: "center",
             xOffset: textOffsetX,
             yOffset: textOffsetY,
             rotationDegrees: textRotationDegrees,
-            scale: textScale,
-            fontSize: textFontSize
+            scale: textScale
         )
 
         let post = AthletePost(
