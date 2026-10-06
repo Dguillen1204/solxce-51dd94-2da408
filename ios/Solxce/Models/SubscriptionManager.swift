@@ -1,6 +1,7 @@
 // Models/SubscriptionManager.swift
 import SwiftUI
 import Combine
+import PassKit
 
 enum SubscriptionPlanTier: String, CaseIterable, Identifiable {
     case monthly = "monthly"
@@ -15,6 +16,13 @@ enum SubscriptionPlanTier: String, CaseIterable, Identifiable {
         }
     }
 
+    var priceNumeric: Double {
+        switch self {
+        case .monthly: return 4.99
+        case .annual: return 49.99
+        }
+    }
+
     var priceString: String {
         switch self {
         case .monthly: return "$4.99 / month"
@@ -26,6 +34,13 @@ enum SubscriptionPlanTier: String, CaseIterable, Identifiable {
         switch self {
         case .monthly: return "$4.99 / month"
         case .annual: return "$49.99 / year ($4.17/mo)"
+        }
+    }
+
+    var postTrialChargeText: String {
+        switch self {
+        case .monthly: return "$4.99/month"
+        case .annual: return "$49.99/year"
         }
     }
 
@@ -66,6 +81,12 @@ enum ProFeature: String, CaseIterable {
     }
 }
 
+enum PaymentMethodType: String, CaseIterable {
+    case applePay = "Apple Pay"
+    case creditCard = "Credit Card"
+    case inAppPurchase = "In-App Purchase"
+}
+
 @MainActor
 final class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
@@ -73,23 +94,92 @@ final class SubscriptionManager: ObservableObject {
     @AppStorage("solxce_is_pro_active") var isPro: Bool = false
     @AppStorage("solxce_active_plan") var activePlanRaw: String = SubscriptionPlanTier.annual.rawValue
     @AppStorage("solxce_subscription_start_date") var subscriptionStartTimestamp: Double = 0
+    @AppStorage("solxce_is_in_trial") var isInTrial: Bool = false
+    @AppStorage("solxce_trial_end_date") var trialEndTimestamp: Double = 0
+    @AppStorage("solxce_payment_method") var paymentMethodRaw: String = PaymentMethodType.applePay.rawValue
 
     @Published var selectedPlan: SubscriptionPlanTier = .annual
     @Published var isPurchasing: Bool = false
     @Published var purchaseSuccessToast: Bool = false
+    @Published var applePaySheetPresented: Bool = false
+    @Published var lastErrorMessage: String? = nil
 
     var activePlan: SubscriptionPlanTier {
         get { SubscriptionPlanTier(rawValue: activePlanRaw) ?? .annual }
         set { activePlanRaw = newValue.rawValue }
     }
 
-    func purchase(plan: SubscriptionPlanTier) async {
+    var paymentMethod: PaymentMethodType {
+        get { PaymentMethodType(rawValue: paymentMethodRaw) ?? .applePay }
+        set { paymentMethodRaw = newValue.rawValue }
+    }
+
+    /// Calculated date when the 7-day free trial will end and the customer will be automatically charged
+    var trialEndDate: Date {
+        if trialEndTimestamp > 0 {
+            return Date(timeIntervalSince1970: trialEndTimestamp)
+        }
+        return Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+    }
+
+    var daysRemainingInTrial: Int {
+        guard isInTrial else { return 0 }
+        let remaining = Calendar.current.dateComponents([.day], from: Date(), to: trialEndDate).day ?? 0
+        return max(0, remaining)
+    }
+
+    var trialBillingFormattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: trialEndDate)
+    }
+
+    /// Checks if device supports Apple Pay
+    var isApplePayAvailable: Bool {
+        PKPaymentAuthorizationController.canMakePayments()
+    }
+
+    /// Purchase with Apple Pay or native StoreKit subscription
+    func startTrialWithApplePay(plan: SubscriptionPlanTier) async -> Bool {
         isPurchasing = true
-        // Simulate quick secure StoreKit transaction
-        try? await Task.sleep(nanoseconds: 600_000_000)
+        paymentMethod = .applePay
+
+        // Simulate Apple Pay sheet biometric authorization and tokenization
+        try? await Task.sleep(nanoseconds: 750_000_000)
+
         isPro = true
         activePlan = plan
-        subscriptionStartTimestamp = Date().timeIntervalSince1970
+        isInTrial = true
+        let now = Date()
+        subscriptionStartTimestamp = now.timeIntervalSince1970
+        let sevenDaysLater = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+        trialEndTimestamp = sevenDaysLater.timeIntervalSince1970
+
+        isPurchasing = false
+        purchaseSuccessToast = true
+        return true
+    }
+
+    func purchase(plan: SubscriptionPlanTier, withTrial: Bool = true, method: PaymentMethodType = .applePay) async {
+        isPurchasing = true
+        paymentMethod = method
+        try? await Task.sleep(nanoseconds: 600_000_000)
+
+        isPro = true
+        activePlan = plan
+        let now = Date()
+        subscriptionStartTimestamp = now.timeIntervalSince1970
+
+        if withTrial {
+            isInTrial = true
+            let sevenDaysLater = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+            trialEndTimestamp = sevenDaysLater.timeIntervalSince1970
+        } else {
+            isInTrial = false
+            trialEndTimestamp = 0
+        }
+
         isPurchasing = false
         purchaseSuccessToast = true
     }
@@ -104,6 +194,8 @@ final class SubscriptionManager: ObservableObject {
 
     func cancelSubscription() {
         isPro = false
+        isInTrial = false
         subscriptionStartTimestamp = 0
+        trialEndTimestamp = 0
     }
 }
