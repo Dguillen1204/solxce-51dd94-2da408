@@ -138,15 +138,16 @@ struct FeedView: View {
         postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle) }
     }
 
-    private var matchingAthletes: [AthletePublicProfile] {
+    private var matchingAthletes: [OtherAthleteProfile] {
+        let allAthletes = Array(relationshipStore.athleteDirectory.values)
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return relationshipStore.directory.filter { $0.handle != currentUserHandle }
+            return allAthletes.filter { $0.handle != currentUserHandle }
         }
         let query = searchText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
-        return relationshipStore.directory.filter { athlete in
+        return allAthletes.filter { athlete in
             athlete.handle != currentUserHandle &&
             (athlete.handle.lowercased().contains(query) ||
-             athlete.displayName.lowercased().contains(query) ||
+             athlete.name.lowercased().contains(query) ||
              athlete.athleteType.rawValue.lowercased().contains(query))
         }
     }
@@ -386,7 +387,7 @@ struct FeedView: View {
 
 // MARK: - Athlete Search Result Row
 struct AthleteSearchResultRow: View {
-    let athlete: AthletePublicProfile
+    let athlete: OtherAthleteProfile
     let onSelect: () -> Void
     @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
 
@@ -403,27 +404,19 @@ struct AthleteSearchResultRow: View {
                         .fill(AppTheme.surfaceRaised)
                         .frame(width: 46, height: 46)
 
-                    if let image = athlete.avatarImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 46, height: 46)
-                            .clipShape(Circle())
-                    } else {
-                        Text(athlete.displayName.prefix(1))
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(AppTheme.primary)
-                    }
+                    Image(systemName: athlete.avatarSymbol)
+                        .font(.system(size: 20))
+                        .foregroundColor(AppTheme.primary)
                 }
 
                 // Name & Handle & Archetype
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(athlete.displayName)
+                        Text(athlete.name)
                             .font(AppTheme.headlineFont)
                             .foregroundColor(AppTheme.textPrimary)
 
-                        if athlete.isVerified {
+                        if athlete.isVerifiedAthlete {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 12))
                                 .foregroundColor(AppTheme.primary)
