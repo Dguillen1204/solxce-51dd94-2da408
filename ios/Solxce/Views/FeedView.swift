@@ -35,6 +35,7 @@ public struct AthletePost: Identifiable {
     public let audioTrack: AudioTrack?
     public let videoFilter: PostVideoFilter?
     public let textOverlay: String?
+    public var textSticker: TikTokTextStickerData?
     public var likesCount: Int
     public var isLiked: Bool
     public var comments: [PostComment]
@@ -57,6 +58,7 @@ public struct AthletePost: Identifiable {
         audioTrack: AudioTrack? = AudioTrack.library.first,
         videoFilter: PostVideoFilter? = .normal,
         textOverlay: String? = nil,
+        textSticker: TikTokTextStickerData? = nil,
         likesCount: Int,
         isLiked: Bool,
         comments: [PostComment]
@@ -80,6 +82,7 @@ public struct AthletePost: Identifiable {
         self.audioTrack = audioTrack
         self.videoFilter = videoFilter
         self.textOverlay = textOverlay
+        self.textSticker = textSticker ?? (textOverlay != nil ? TikTokTextStickerData(text: textOverlay ?? "", fontStyle: TikTokFontStyle.neon.rawValue, highlightMode: TikTokHighlightMode.filled.rawValue, colorHex: "#CCFF00") : nil)
         self.likesCount = likesCount
         self.isLiked = isLiked
         self.comments = comments
