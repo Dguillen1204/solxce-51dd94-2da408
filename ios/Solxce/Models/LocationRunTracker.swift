@@ -61,9 +61,12 @@ final class LocationRunTracker: NSObject, ObservableObject, CLLocationManagerDel
         locationManager.pausesLocationUpdatesAutomatically = false
         
         #if os(iOS)
-        // Enable background location execution when supported
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.showsBackgroundLocationIndicator = true
+        // Background location updates should only be enabled when the app has background location entitlements/modes
+        let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
+        if backgroundModes.contains("location") {
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.showsBackgroundLocationIndicator = true
+        }
         #endif
         
         self.authorizationStatus = locationManager.authorizationStatus
