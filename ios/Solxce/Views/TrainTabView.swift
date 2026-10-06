@@ -272,7 +272,7 @@ struct TrainTabView: View {
                 } label: {
                     Text(filter.rawValue)
                         .font(AppTheme.captionFont.weight(.semibold))
-                        .foregroundStyle(selectedFilter == filter ? Color.black : AppTheme.textSecondary)
+                        .foregroundStyle(selectedFilter == filter ? AppTheme.onPrimary : AppTheme.textSecondary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
                         .background(selectedFilter == filter ? AppTheme.primary : AppTheme.surface)

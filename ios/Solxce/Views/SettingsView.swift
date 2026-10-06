@@ -567,7 +567,7 @@ struct SettingsView: View {
                     } label: {
                         Text(subManager.isPro ? "Manage" : "Upgrade")
                             .font(AppTheme.captionFont.weight(.bold))
-                            .foregroundStyle(subManager.isPro ? AppTheme.text : Color.black)
+                            .foregroundStyle(subManager.isPro ? AppTheme.text : AppTheme.onPrimary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(subManager.isPro ? AppTheme.field : AppTheme.primary)
@@ -881,7 +881,7 @@ struct ChangePasswordSheet: View {
                         } else {
                             Text("Update Password")
                                 .font(AppTheme.headlineFont.weight(.bold))
-                                .foregroundStyle(Color.black)
+                                .foregroundStyle(AppTheme.onPrimary)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -1118,7 +1118,7 @@ struct EditPaymentCardSheet: View {
                         } else {
                             Text("Save Payment Details")
                                 .font(AppTheme.headlineFont.weight(.bold))
-                                .foregroundStyle(Color.black)
+                                .foregroundStyle(AppTheme.onPrimary)
                         }
                     }
                     .frame(maxWidth: .infinity)

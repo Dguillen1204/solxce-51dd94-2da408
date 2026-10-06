@@ -507,7 +507,7 @@ struct ProfileView: View {
                     Text("Create First Post")
                         .font(AppTheme.captionFont.weight(.bold))
                 }
-                .foregroundStyle(Color.black)
+                .foregroundStyle(AppTheme.onPrimary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(AppTheme.primary)
