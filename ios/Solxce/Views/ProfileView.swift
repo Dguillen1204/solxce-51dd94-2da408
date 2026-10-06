@@ -21,6 +21,7 @@ struct ProfileView: View {
     @State private var showingEditPhotoSheet = false
     @State private var showingWatchHub = false
     @State private var showingSettings = false
+    @State private var showingSchedulePlanner = false
 
     // Profile Post Grid navigation state
     enum ProfileMediaTab: String, CaseIterable {
@@ -109,6 +110,9 @@ struct ProfileView: View {
                     // Profile Header & Avatar
                     profileHeader
 
+                    // Quick Hub Action Hub (Schedule & Settings Shortcuts)
+                    profileQuickAccessBar
+
                     // Instagram-style Stat Counters (Posts, Followers, Volume)
                     profileSocialCountersRow
 
@@ -195,6 +199,9 @@ struct ProfileView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
+            .sheet(isPresented: $showingSchedulePlanner) {
+                PlannerView()
+            }
             .sheet(isPresented: $showingNewPostSheet) {
                 CreateMediaPostSheet(
                     authorName: currentProfile.fullName,
@@ -231,6 +238,81 @@ struct ProfileView: View {
                     )
                 }
             }
+        }
+    }
+
+    // MARK: - Profile Quick Access Bar (Schedule & Settings)
+    private var profileQuickAccessBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                showingSchedulePlanner = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(AppTheme.primary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("SCHEDULE")
+                            .font(AppTheme.eyebrowFont)
+                            .tracking(1.0)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Text("Weekly Splits")
+                            .font(AppTheme.captionFont.weight(.semibold))
+                            .foregroundStyle(AppTheme.text)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.textMuted)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                        .stroke(AppTheme.hairline, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showingSettings = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(AppTheme.accent)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("SETTINGS")
+                            .font(AppTheme.eyebrowFont)
+                            .tracking(1.0)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Text("Preferences")
+                            .font(AppTheme.captionFont.weight(.semibold))
+                            .foregroundStyle(AppTheme.text)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.textMuted)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                        .stroke(AppTheme.hairline, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
