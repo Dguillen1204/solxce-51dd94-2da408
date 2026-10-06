@@ -3,17 +3,12 @@ import Foundation
 import AVFoundation
 import SwiftUI
 import Combine
-
-#if canImport(UIKit)
 import UIKit
-#endif
 
-@MainActor
 final class CameraCaptureService: NSObject, ObservableObject {
     @Published var isSessionRunning: Bool = false
     @Published var permissionGranted: Bool = false
     @Published var permissionDenied: Bool = false
-    @Published var isSimulator: Bool = false
     @Published var capturedImage: UIImage?
     @Published var isTorchOn: Bool = false
     @Published var currentCameraPosition: AVCaptureDevice.Position = .back
@@ -24,27 +19,27 @@ final class CameraCaptureService: NSObject, ObservableObject {
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDeviceInput: AVCaptureDeviceInput?
     private let sessionQueue = DispatchQueue(label: "app.solxce.camera.sessionQueue")
+    private var activeDelegates: [NSObject] = []
 
     override init() {
         super.init()
-        #if targetEnvironment(simulator)
-        self.isSimulator = true
-        self.permissionGranted = true
-        #else
         checkPermissions()
-        #endif
     }
 
     func checkPermissions() {
         #if targetEnvironment(simulator)
-        self.isSimulator = true
-        self.permissionGranted = true
-        return
+        DispatchQueue.main.async {
+            self.permissionGranted = true
+            self.permissionDenied = false
+            self.isSessionRunning = true
+        }
         #else
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            self.permissionGranted = true
-            self.permissionDenied = false
+            DispatchQueue.main.async {
+                self.permissionGranted = true
+                self.permissionDenied = false
+            }
             setupSession()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
@@ -57,60 +52,49 @@ final class CameraCaptureService: NSObject, ObservableObject {
                 }
             }
         case .denied, .restricted:
-            self.permissionGranted = false
-            self.permissionDenied = true
+            DispatchQueue.main.async {
+                self.permissionGranted = false
+                self.permissionDenied = true
+            }
         @unknown default:
-            self.permissionGranted = false
-            self.permissionDenied = true
+            DispatchQueue.main.async {
+                self.permissionGranted = false
+                self.permissionDenied = true
+            }
         }
         #endif
     }
 
     func setupSession() {
-        #if targetEnvironment(simulator)
-        return
-        #else
+        #if !targetEnvironment(simulator)
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             self.captureSession.beginConfiguration()
             self.captureSession.sessionPreset = .photo
 
-            // Setup input
-            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Unable to access back camera device"
-                }
-                self.captureSession.commitConfiguration()
-                return
-            }
-
-            do {
-                let videoInput = try AVCaptureDeviceInput(device: videoDevice)
+            if let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+               let videoInput = try? AVCaptureDeviceInput(device: videoDevice) {
                 if self.captureSession.canAddInput(videoInput) {
                     self.captureSession.addInput(videoInput)
                     self.videoDeviceInput = videoInput
                 }
-
-                if self.captureSession.canAddOutput(self.photoOutput) {
-                    self.captureSession.addOutput(self.photoOutput)
-                    self.photoOutput.isHighResolutionCaptureEnabled = true
-                }
-
-                self.captureSession.commitConfiguration()
-                self.startRunning()
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Failed to initialize camera input: \(error.localizedDescription)"
-                }
-                self.captureSession.commitConfiguration()
             }
+
+            if self.captureSession.canAddOutput(self.photoOutput) {
+                self.captureSession.addOutput(self.photoOutput)
+            }
+
+            self.captureSession.commitConfiguration()
+            self.startRunning()
         }
         #endif
     }
 
     func startRunning() {
         #if targetEnvironment(simulator)
-        isSessionRunning = true
+        DispatchQueue.main.async {
+            self.isSessionRunning = true
+        }
         #else
         sessionQueue.async { [weak self] in
             guard let self = self, !self.captureSession.isRunning else { return }
@@ -124,7 +108,9 @@ final class CameraCaptureService: NSObject, ObservableObject {
 
     func stopRunning() {
         #if targetEnvironment(simulator)
-        isSessionRunning = false
+        DispatchQueue.main.async {
+            self.isSessionRunning = false
+        }
         #else
         sessionQueue.async { [weak self] in
             guard let self = self, self.captureSession.isRunning else { return }
@@ -142,10 +128,10 @@ final class CameraCaptureService: NSObject, ObservableObject {
             try device.lockForConfiguration()
             if device.torchMode == .on {
                 device.torchMode = .off
-                isTorchOn = false
+                DispatchQueue.main.async { self.isTorchOn = false }
             } else {
                 try device.setTorchModeOn(level: 1.0)
-                isTorchOn = true
+                DispatchQueue.main.async { self.isTorchOn = true }
             }
             device.unlockForConfiguration()
         } catch {
@@ -155,7 +141,9 @@ final class CameraCaptureService: NSObject, ObservableObject {
 
     func switchCamera() {
         #if targetEnvironment(simulator)
-        currentCameraPosition = (currentCameraPosition == .back) ? .front : .back
+        DispatchQueue.main.async {
+            self.currentCameraPosition = (self.currentCameraPosition == .back) ? .front : .back
+        }
         #else
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
@@ -166,19 +154,15 @@ final class CameraCaptureService: NSObject, ObservableObject {
             }
 
             let newPosition: AVCaptureDevice.Position = (self.currentCameraPosition == .back) ? .front : .back
-            guard let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
-                  let newInput = try? AVCaptureDeviceInput(device: newDevice),
-                  self.captureSession.canAddInput(newInput) else {
-                // Re-add previous
-                if let currentInput = self.videoDeviceInput {
-                    self.captureSession.addInput(currentInput)
-                }
-                self.captureSession.commitConfiguration()
-                return
+            if let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
+               let newInput = try? AVCaptureDeviceInput(device: newDevice),
+               self.captureSession.canAddInput(newInput) {
+                self.captureSession.addInput(newInput)
+                self.videoDeviceInput = newInput
+            } else if let currentInput = self.videoDeviceInput {
+                self.captureSession.addInput(currentInput)
             }
 
-            self.captureSession.addInput(newInput)
-            self.videoDeviceInput = newInput
             self.captureSession.commitConfiguration()
 
             DispatchQueue.main.async {
@@ -191,61 +175,58 @@ final class CameraCaptureService: NSObject, ObservableObject {
 
     func capturePhoto(completion: @escaping (UIImage?) -> Void) {
         #if targetEnvironment(simulator)
-        // Simulator fallback image
-        self.isCapturing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            self.isCapturing = false
-            let mockImage = self.generateMockMealImage()
-            self.capturedImage = mockImage
-            completion(mockImage)
+        DispatchQueue.main.async {
+            self.isCapturing = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self.isCapturing = false
+                let mockImage = self.generateMockMealImage()
+                self.capturedImage = mockImage
+                completion(mockImage)
+            }
         }
         #else
         guard !isCapturing else { return }
-        isCapturing = true
+        DispatchQueue.main.async { self.isCapturing = true }
 
         let settings = AVCapturePhotoSettings()
-        let delegate = PhotoCaptureProcessor { [weak self] image in
+        let processor = PhotoProcessor { [weak self] image in
             DispatchQueue.main.async {
                 self?.isCapturing = false
                 self?.capturedImage = image
                 completion(image)
             }
         }
-        self.photoCaptureDelegates[settings.uniqueID] = delegate
-        photoOutput.capturePhoto(with: settings, delegate: delegate)
+        self.activeDelegates.append(processor)
+        self.photoOutput.capturePhoto(with: settings, delegate: processor)
         #endif
     }
-
-    private var photoCaptureDelegates: [Int64: PhotoCaptureProcessor] = [:]
 
     private func generateMockMealImage() -> UIImage {
         let size = CGSize(width: 400, height: 400)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { context in
-            // Background gradient
             let colors = [UIColor(red: 0.12, green: 0.14, blue: 0.18, alpha: 1.0).cgColor, UIColor(red: 0.05, green: 0.07, blue: 0.09, alpha: 1.0).cgColor]
             let colorSpace = CGColorSpaceCreateDeviceRGB()
-            let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: [0.0, 1.0])!
-            context.cgContext.drawLinearGradient(gradient, start: CGPoint.zero, end: CGPoint(x: size.width, y: size.height), options: [])
+            if let gradient = CGGradient(colorsSpace: colorSpace, colors: colors as CFArray, locations: [0.0, 1.0]) {
+                context.cgContext.drawLinearGradient(gradient, start: CGPoint.zero, end: CGPoint(x: size.width, y: size.height), options: [])
+            }
 
-            // Bowl shape
             context.cgContext.setFillColor(UIColor(red: 0.2, green: 0.22, blue: 0.28, alpha: 1.0).cgColor)
             context.cgContext.fillEllipse(in: CGRect(x: 40, y: 40, width: 320, height: 320))
 
-            // Food items
             context.cgContext.setFillColor(UIColor(red: 0.85, green: 0.55, blue: 0.2, alpha: 0.9).cgColor)
-            context.cgContext.fillEllipse(in: CGRect(x: 90, y: 100, width: 110, height: 110)) // Protein
+            context.cgContext.fillEllipse(in: CGRect(x: 90, y: 100, width: 110, height: 110))
 
             context.cgContext.setFillColor(UIColor(red: 0.95, green: 0.92, blue: 0.85, alpha: 0.9).cgColor)
-            context.cgContext.fillEllipse(in: CGRect(x: 200, y: 110, width: 100, height: 100)) // Rice/Carb
+            context.cgContext.fillEllipse(in: CGRect(x: 200, y: 110, width: 100, height: 100))
 
             context.cgContext.setFillColor(UIColor(red: 0.2, green: 0.75, blue: 0.4, alpha: 0.9).cgColor)
-            context.cgContext.fillEllipse(in: CGRect(x: 130, y: 200, width: 130, height: 90)) // Veggie/Broccoli
+            context.cgContext.fillEllipse(in: CGRect(x: 130, y: 200, width: 130, height: 90))
         }
     }
 }
 
-final class PhotoCaptureProcessor: NSObject, AVCapturePhotoCaptureDelegate {
+final class PhotoProcessor: NSObject, AVCapturePhotoCaptureDelegate {
     private let completion: (UIImage?) -> Void
 
     init(completion: @escaping (UIImage?) -> Void) {
@@ -265,21 +246,21 @@ final class PhotoCaptureProcessor: NSObject, AVCapturePhotoCaptureDelegate {
 
 // MARK: - Live Camera Viewfinder Layer
 struct LiveCameraPreviewView: UIViewRepresentable {
-    @ObservedObject var cameraService: CameraCaptureService
+    let session: AVCaptureSession
 
     func makeUIView(context: Context) -> CameraPreviewUIView {
         let view = CameraPreviewUIView()
-        view.videoPreviewLayer.session = cameraService.captureSession
+        view.videoPreviewLayer.session = session
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
         return view
     }
 
     func updateUIView(_ uiView: CameraPreviewUIView, context: Context) {
-        uiView.videoPreviewLayer.session = cameraService.captureSession
+        uiView.videoPreviewLayer.session = session
     }
 }
 
-class CameraPreviewUIView: UIView {
+final class CameraPreviewUIView: UIView {
     override class var layerClass: AnyClass {
         return AVCaptureVideoPreviewLayer.self
     }

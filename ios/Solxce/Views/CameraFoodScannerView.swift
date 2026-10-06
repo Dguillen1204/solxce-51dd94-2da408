@@ -2,6 +2,7 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import UIKit
 
 struct RecognizedMealPreset: Identifiable {
     let id = UUID()
@@ -38,7 +39,7 @@ struct CameraFoodScannerView: View {
         RecognizedMealPreset(name: "Grilled Chicken, Brown Rice & Steamed Broccoli", category: "High Protein", calories: 520, protein: 48, carbs: 55, fat: 8, icon: "fork.knife"),
         RecognizedMealPreset(name: "Ribeye Steak with Sweet Potato & Asparagus", category: "Strength Fuel", calories: 680, protein: 54, carbs: 48, fat: 22, icon: "flame.fill"),
         RecognizedMealPreset(name: "Atlantic Salmon Bowl with Quinoa & Avocado", category: "Healthy Fats", calories: 610, protein: 42, carbs: 40, fat: 26, icon: "leaf.fill"),
-        RecognizedMealPreset(name: "Greek Yogurt Bowl with Mixed Berries & Honey", category: "Quick Breakfast", calories: 340, protein: 28, carbs: 42, fat: 5, icon: "cup.and.saucer.fill"),
+        RecognizedMealPreset(name: "Greek Yogurt Bowl with Mixed Beries & Honey", category: "Quick Breakfast", calories: 340, protein: 28, carbs: 42, fat: 5, icon: "cup.and.saucer.fill"),
         RecognizedMealPreset(name: "Whey Protein Shake with Banana & Peanut Butter", category: "Post Workout", calories: 350, protein: 36, carbs: 38, fat: 7, icon: "bolt.fill"),
         RecognizedMealPreset(name: "Scrambled Eggs, Sourdough & Turkey Bacon", category: "Power Breakfast", calories: 490, protein: 36, carbs: 32, fat: 18, icon: "sun.max.fill")
     ]
@@ -68,7 +69,6 @@ struct CameraFoodScannerView: View {
                 if subManager.isPro && !cameraService.permissionDenied {
                     ToolbarItem(placement: .primaryAction) {
                         HStack(spacing: 16) {
-                            // Flash/Torch Toggle
                             Button {
                                 cameraService.toggleTorch()
                             } label: {
@@ -76,7 +76,6 @@ struct CameraFoodScannerView: View {
                                     .foregroundStyle(cameraService.isTorchOn ? AppTheme.primary : AppTheme.textSecondary)
                             }
 
-                            // Switch Camera
                             Button {
                                 cameraService.switchCamera()
                             } label: {
@@ -188,21 +187,16 @@ struct CameraFoodScannerView: View {
             } else {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: AppTheme.Spacing.md) {
-                        // Live Viewfinder / Capture Frame
                         cameraViewport
 
-                        // Capture & Actions Strip
                         cameraActionControls
 
-                        // Scanned Analysis Result Card
                         if scanCompleted {
                             scannedResultCard
                         }
 
-                        // Meal Type Selector
                         mealTypeSelector
 
-                        // Quick Presets Reference
                         quickPresetsSection
                     }
                     .padding(.vertical, AppTheme.Spacing.sm)
@@ -219,7 +213,6 @@ struct CameraFoodScannerView: View {
                 .frame(height: 320)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
 
-            // Live Feed or Captured Stills
             if let captured = capturedImage {
                 Image(uiImage: captured)
                     .resizable()
@@ -230,16 +223,14 @@ struct CameraFoodScannerView: View {
                 #if targetEnvironment(simulator)
                 simulatorLiveFeedMock
                 #else
-                LiveCameraPreviewView(cameraService: cameraService)
+                LiveCameraPreviewView(session: cameraService.captureSession)
                     .frame(height: 320)
                     .clipShape(RoundedRectangle(cornerRadius: 24))
                 #endif
             }
 
-            // Viewfinder Grid & Corners
             viewfinderOverlay
 
-            // Scanning Laser Sweep Animation
             if isScanning {
                 VStack {
                     Rectangle()
@@ -278,7 +269,6 @@ struct CameraFoodScannerView: View {
                 }
             }
 
-            // Top Status Pill
             VStack {
                 HStack {
                     HStack(spacing: 6) {
@@ -326,7 +316,6 @@ struct CameraFoodScannerView: View {
         .padding(.horizontal, AppTheme.Spacing.screenMargin)
     }
 
-    // MARK: - Simulator Fallback View
     private var simulatorLiveFeedMock: some View {
         ZStack {
             LinearGradient(
@@ -357,7 +346,6 @@ struct CameraFoodScannerView: View {
         }
     }
 
-    // MARK: - Viewfinder Overlay
     private var viewfinderOverlay: some View {
         GeometryReader { geo in
             let length: CGFloat = 28
@@ -365,46 +353,39 @@ struct CameraFoodScannerView: View {
             let cornerRadius: CGFloat = 20
 
             ZStack {
-                // Focus Center Crosshair
                 Circle()
                     .stroke(AppTheme.primary.opacity(0.3), lineWidth: 1)
                     .frame(width: 60, height: 60)
 
-                // Top Left
                 Path { path in
                     path.move(to: CGPoint(x: cornerRadius, y: cornerRadius + length))
                     path.addLine(to: CGPoint(x: cornerRadius, y: cornerRadius))
                     path.addLine(to: CGPoint(x: cornerRadius + length, y: cornerRadius))
                 }.stroke(AppTheme.primary, lineWidth: stroke)
 
-                // Top Right
                 Path { path in
                     path.move(to: CGPoint(x: geo.size.width - cornerRadius - length, y: cornerRadius))
                     path.addLine(to: CGPoint(x: geo.size.width - cornerRadius, y: cornerRadius))
                     path.addLine(to: CGPoint(x: geo.size.width - cornerRadius, y: cornerRadius + length))
                 }.stroke(AppTheme.primary, lineWidth: stroke)
 
-                // Bottom Left
                 Path { path in
                     path.move(to: CGPoint(x: cornerRadius, y: geo.size.height - cornerRadius - length))
                     path.addLine(to: CGPoint(x: cornerRadius, y: geo.size.height - cornerRadius))
                     path.addLine(to: CGPoint(x: cornerRadius + length, y: geo.size.height - cornerRadius))
                 }.stroke(AppTheme.primary, lineWidth: stroke)
 
-                // Bottom Right
                 Path { path in
                     path.move(to: CGPoint(x: geo.size.width - cornerRadius - length, y: geo.size.height - cornerRadius))
-                    path.addLine(to: CGPoint(x: geo.size.width - cornerRadius, y: geo.size.height - cornerRadius))
+                    path.addLine(to: CGPoint(x: geo.size.width - cornerRadius, y: cornerRadius))
                     path.addLine(to: CGPoint(x: geo.size.width - cornerRadius, y: geo.size.height - cornerRadius - length))
                 }.stroke(AppTheme.primary, lineWidth: stroke)
             }
         }
     }
 
-    // MARK: - Camera Controls
     private var cameraActionControls: some View {
         HStack(spacing: AppTheme.Spacing.md) {
-            // Photos Library Import
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 VStack(spacing: 4) {
                     Image(systemName: "photo.on.rectangle")
@@ -418,7 +399,6 @@ struct CameraFoodScannerView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
 
-            // Main Shutter / Scan Button
             Button {
                 triggerLiveLensCapture()
             } label: {
@@ -455,7 +435,6 @@ struct CameraFoodScannerView: View {
         .padding(.horizontal, AppTheme.Spacing.screenMargin)
     }
 
-    // MARK: - Scanned Result Breakdown
     private var scannedResultCard: some View {
         VStack(spacing: AppTheme.Spacing.sm) {
             HStack {
@@ -479,7 +458,6 @@ struct CameraFoodScannerView: View {
 
             Divider().background(AppTheme.hairline)
 
-            // Macro summary grid
             HStack(spacing: AppTheme.Spacing.xs) {
                 macroBadge("Calories", val: "\(calories) kcal", color: AppTheme.caloriesColor)
                 macroBadge("Protein", val: "\(protein)g", color: AppTheme.proteinColor)
@@ -487,7 +465,6 @@ struct CameraFoodScannerView: View {
                 macroBadge("Fat", val: "\(fat)g", color: AppTheme.fatColor)
             }
 
-            // Fine tuning steppers
             VStack(spacing: 8) {
                 HStack {
                     Text("Adjust Calories:")
@@ -509,7 +486,6 @@ struct CameraFoodScannerView: View {
             }
             .padding(.top, 4)
 
-            // Confirm Add Button
             Button {
                 commitScannedMeal()
             } label: {
@@ -537,7 +513,6 @@ struct CameraFoodScannerView: View {
         .padding(.horizontal, AppTheme.Spacing.screenMargin)
     }
 
-    // MARK: - Meal Type Selector
     private var mealTypeSelector: some View {
         HStack(spacing: 8) {
             ForEach(["Breakfast", "Lunch", "Dinner", "Snack"], id: \.self) { type in
@@ -559,7 +534,6 @@ struct CameraFoodScannerView: View {
         .padding(.horizontal, AppTheme.Spacing.screenMargin)
     }
 
-    // MARK: - Quick Presets Section
     private var quickPresetsSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
             Text("OR TAP COMMON ATHLETE MEALS")
@@ -614,7 +588,6 @@ struct CameraFoodScannerView: View {
         .padding(.bottom, AppTheme.Spacing.xxl)
     }
 
-    // MARK: - Permission Denied View
     private var cameraPermissionDeniedView: some View {
         VStack(spacing: AppTheme.Spacing.md) {
             Image(systemName: "camera.badge.ellipsis")
@@ -631,7 +604,6 @@ struct CameraFoodScannerView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
-            #if canImport(UIKit)
             Button("Open iOS Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
@@ -642,7 +614,6 @@ struct CameraFoodScannerView: View {
             .frame(width: 220, height: 48)
             .background(AppTheme.primary)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
-            #endif
         }
         .padding(.top, 80)
     }
@@ -663,7 +634,6 @@ struct CameraFoodScannerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - AI Lens Capture & Analysis Trigger
     private func triggerLiveLensCapture() {
         isScanning = true
         cameraService.capturePhoto { image in
@@ -671,7 +641,6 @@ struct CameraFoodScannerView: View {
                 self.capturedImage = image
                 analyzeCapturedImage(image)
             } else {
-                // Mock fallback scan
                 let preset = sampleCatalog.randomElement() ?? sampleCatalog[0]
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     self.isScanning = false
@@ -683,7 +652,6 @@ struct CameraFoodScannerView: View {
 
     private func analyzeCapturedImage(_ image: UIImage) {
         isScanning = true
-        // Simulate deep AI multimodal food recognition on camera frame
         let preset = sampleCatalog.randomElement() ?? sampleCatalog[0]
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
             self.isScanning = false
