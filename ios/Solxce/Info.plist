@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    
+    <!-- Location Privacy Keys -->
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Solxce uses your location in the background and foreground to accurately track your outdoor run routes, distance, splits, elevation, and live GPS telemetry.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Solxce requires location access to map your outdoor running paths, track real-time pace, and calculate workout distance.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Solxce requires continuous background location access to map and record your long-distance running workouts even when your phone is locked.</string>
+
+    <!-- Camera Privacy Key -->
+    <key>NSCameraUsageDescription</key>
+    <string>Solxce uses your camera to scan meals for instant AI macro nutrition logging and capture workout progress media.</string>
+
+    <!-- Photo Library Privacy Keys -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Solxce accesses your photo library so you can select and share workout photos and video reels with the community.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Solxce saves exported workout summaries, progress milestone graphics, and running route recap cards to your photo library.</string>
+
+    <!-- HealthKit Privacy Keys -->
+    <key>NSHealthShareUsageDescription</key>
+    <string>Solxce reads your heart rate, active energy burned, resting metabolic rate, and step counts to provide personalized athletic coaching and live telemetry.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Solxce writes completed workouts, running sessions, and nutritional intake data to Apple Health.</string>
+
+    <!-- Calendar Privacy Keys -->
+    <key>NSCalendarsUsageDescription</key>
+    <string>Solxce syncs your planned training sessions and athletic workouts directly to your personal calendar.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Solxce requires calendar access to schedule, modify, and synchronize your upcoming workout events.</string>
+
+    <!-- Apple Music / Media Privacy Key -->
+    <key>NSAppleMusicUsageDescription</key>
+    <string>Solxce accesses Apple Music so you can attach soundtrack cues and preview motivational tracks during workouts.</string>
+
+    <!-- Background Modes for Workout & Run Tracking -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>audio</string>
+        <string>fetch</string>
+        <string>remote-notification</string>
+    </array>
+
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>armv7</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+</dict>
+</plist>
