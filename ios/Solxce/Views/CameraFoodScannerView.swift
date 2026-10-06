@@ -420,13 +420,7 @@ struct CameraFoodScannerView: View {
                 .foregroundStyle(AppTheme.onPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 64)
-                .background(
-                    LinearGradient(
-                        colors: [AppTheme.primary, AppTheme.primaryDark],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(AppTheme.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
                 .shadow(color: AppTheme.primary.opacity(0.3), radius: 8, y: 3)
             }
