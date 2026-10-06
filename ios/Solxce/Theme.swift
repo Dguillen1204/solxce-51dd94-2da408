@@ -193,22 +193,22 @@ public enum AppTheme {
         dark: UIColor(white: 1.0, alpha: 0.12)
     )
 
-    /// Primary Typography: High Contrast White (#FFFFFF)
+    /// Primary Typography: High Contrast Text (Black in Light mode, White in Dark mode)
     public static let text = dynamicColor(
-        light: UIColor(red: 0.07, green: 0.07, blue: 0.08, alpha: 1.0),
+        light: UIColor(red: 0.05, green: 0.05, blue: 0.06, alpha: 1.0),
         dark: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
     )
 
-    /// Secondary Typography: Platinum Muted (#94A3B8 / #CBD5E1)
+    /// Secondary Typography: Platinum Muted (Dark Slate in Light mode, Soft Gray in Dark mode)
     public static let textSecondary = dynamicColor(
-        light: UIColor(red: 0.42, green: 0.42, blue: 0.48, alpha: 1.0),
-        dark: UIColor(red: 0.65, green: 0.67, blue: 0.72, alpha: 1.0)
+        light: UIColor(red: 0.35, green: 0.37, blue: 0.42, alpha: 1.0),
+        dark: UIColor(red: 0.75, green: 0.78, blue: 0.84, alpha: 1.0)
     )
 
-    /// Muted/Disabled Typography (#64748B)
+    /// Muted/Disabled Typography (Medium Gray in Light mode, Slate Gray in Dark mode)
     public static let textMuted = dynamicColor(
-        light: UIColor(red: 0.62, green: 0.62, blue: 0.68, alpha: 1.0),
-        dark: UIColor(red: 0.42, green: 0.45, blue: 0.50, alpha: 1.0)
+        light: UIColor(red: 0.52, green: 0.54, blue: 0.60, alpha: 1.0),
+        dark: UIColor(red: 0.50, green: 0.53, blue: 0.58, alpha: 1.0)
     )
 
     /// Text sitting on top of primary button
