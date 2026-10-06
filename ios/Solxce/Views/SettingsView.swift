@@ -537,7 +537,7 @@ struct SettingsView: View {
     // MARK: - Billing & Credit Card Details Section
     private var billingAndCardSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: "Billing & Payment Method", subtitle: "Manage your credit card, billing details & subscription", icon: "creditcard.fill")
+            sectionHeader(title: "Billing & Payment Method", subtitle: "Manage Apple Pay, credit cards, billing & trial schedule", icon: "creditcard.fill")
 
             VStack(spacing: 12) {
                 // Subscription Status Row
@@ -552,12 +552,31 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(subManager.isPro ? "Solxce Pro Member" : "Solxce Standard")
-                            .font(AppTheme.bodyFont.weight(.semibold))
-                            .foregroundStyle(AppTheme.text)
-                        Text(subManager.isPro ? "\(subManager.activePlan.title) • Active" : "Upgrade for AI vision, watch sync & stats")
-                            .font(AppTheme.captionFont)
-                            .foregroundStyle(AppTheme.textSecondary)
+                        HStack(spacing: 6) {
+                            Text(subManager.isPro ? "Solxce Pro Member" : "Solxce Standard")
+                                .font(AppTheme.bodyFont.weight(.semibold))
+                                .foregroundStyle(AppTheme.text)
+                            
+                            if subManager.isInTrial {
+                                Text("TRIAL")
+                                    .font(.system(size: 9, weight: .black))
+                                    .foregroundStyle(AppTheme.onPrimary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(AppTheme.primary)
+                                    .clipShape(Capsule())
+                            }
+                        }
+
+                        if subManager.isInTrial {
+                            Text("7-Day Free Trial ends \(subManager.trialBillingFormattedDate). Auto-charges \(subManager.activePlan.postTrialChargeText).")
+                                .font(AppTheme.captionFont)
+                                .foregroundStyle(AppTheme.primary)
+                        } else {
+                            Text(subManager.isPro ? "\(subManager.activePlan.title) • Active" : "Upgrade for AI vision, watch sync & stats")
+                                .font(AppTheme.captionFont)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
                     }
 
                     Spacer()
@@ -577,16 +596,30 @@ struct SettingsView: View {
 
                 Divider().overlay(AppTheme.hairline)
 
-                // Credit Card Card
+                // Active Payment Method Details (Apple Pay / Credit Card)
                 VStack(spacing: 10) {
                     HStack {
                         HStack(spacing: 8) {
-                            Image(systemName: "creditcard.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(AppTheme.primary)
-                            Text("\(cardBrand) ending in •••• \(cardLast4)")
-                                .font(AppTheme.bodyFont.weight(.bold))
+                            if subManager.paymentMethod == .applePay {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "apple.logo")
+                                        .font(.system(size: 14, weight: .bold))
+                                    Text("Pay")
+                                        .font(.system(size: 14, weight: .bold))
+                                }
                                 .foregroundStyle(AppTheme.text)
+
+                                Text("Default Payment Method")
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            } else {
+                                Image(systemName: "creditcard.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(AppTheme.primary)
+                                Text("\(cardBrand) ending in •••• \(cardLast4)")
+                                    .font(AppTheme.bodyFont.weight(.bold))
+                                    .foregroundStyle(AppTheme.text)
+                            }
                         }
 
                         Spacer()
@@ -594,47 +627,74 @@ struct SettingsView: View {
                         Button {
                             isShowingEditCardSheet = true
                         } label: {
-                            Text("Edit Card")
+                            Text(subManager.paymentMethod == .applePay ? "Switch Card" : "Edit Card")
                                 .font(AppTheme.captionFont.weight(.semibold))
                                 .foregroundStyle(AppTheme.primary)
                         }
                     }
 
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("CARDHOLDER")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(AppTheme.textSecondary)
-                            Text(cardHolderName)
-                                .font(AppTheme.captionFont.weight(.medium))
-                                .foregroundStyle(AppTheme.text)
+                    if subManager.paymentMethod == .applePay {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CONNECTED WALLET")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text("Apple Pay Secure Token")
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                    .foregroundStyle(AppTheme.text)
+                            }
+
+                            Spacer()
+
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("NEXT BILLING")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text(subManager.isInTrial ? subManager.trialBillingFormattedDate : "Monthly/Annual")
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                    .foregroundStyle(AppTheme.text)
+                            }
                         }
+                        .padding(10)
+                        .background(AppTheme.field)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                    } else {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CARDHOLDER")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text(cardHolderName)
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                    .foregroundStyle(AppTheme.text)
+                            }
 
-                        Spacer()
+                            Spacer()
 
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("EXPIRES")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(AppTheme.textSecondary)
-                            Text("\(cardExpMonth)/\(cardExpYear)")
-                                .font(AppTheme.captionFont.weight(.medium))
-                                .foregroundStyle(AppTheme.text)
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("EXPIRES")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text("\(cardExpMonth)/\(cardExpYear)")
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                    .foregroundStyle(AppTheme.text)
+                            }
+
+                            Spacer()
+
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("BILLING ZIP")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text(cardBillingZip)
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                    .foregroundStyle(AppTheme.text)
+                            }
                         }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("BILLING ZIP")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(AppTheme.textSecondary)
-                            Text(cardBillingZip)
-                                .font(AppTheme.captionFont.weight(.medium))
-                                .foregroundStyle(AppTheme.text)
-                        }
+                        .padding(10)
+                        .background(AppTheme.field)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
                     }
-                    .padding(10)
-                    .background(AppTheme.field)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
                 }
             }
             .padding(AppTheme.Spacing.md)
