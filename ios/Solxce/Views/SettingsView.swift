@@ -219,7 +219,7 @@ struct SettingsView: View {
                     if subManager.isPro {
                         Text("PRO")
                             .font(.system(size: 9, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppTheme.onPrimary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(AppTheme.primary)
@@ -437,7 +437,7 @@ struct SettingsView: View {
                         Text("Save Profile Changes")
                             .font(AppTheme.headlineFont)
                     }
-                    .foregroundStyle(.black)
+                    .foregroundStyle(AppTheme.onPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
                     .background(AppTheme.primary)

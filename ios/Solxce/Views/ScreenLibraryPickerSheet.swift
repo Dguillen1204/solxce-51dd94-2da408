@@ -219,7 +219,7 @@ struct ScreenLibraryCardView: View {
                 HStack {
                     Text(item.badgeText)
                         .font(.system(size: 7, weight: .heavy))
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.onPrimary)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(AppTheme.primary)
@@ -296,9 +296,9 @@ struct ScreenDetailPreviewSheet: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(item.badgeText)
                                     .font(.system(size: 9, weight: .heavy))
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 7)
-                                    .padding(.vertical, 3)
+                                    .foregroundColor(AppTheme.onPrimary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
                                     .background(AppTheme.primary)
                                     .clipShape(Capsule())
 

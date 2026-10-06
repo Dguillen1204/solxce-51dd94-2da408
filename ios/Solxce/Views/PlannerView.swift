@@ -676,7 +676,7 @@ struct CalendarSyncConfigSheet: View {
                             Text(isSyncingNow ? "Syncing Calendar..." : "SYNC TO APPLE CALENDAR")
                         }
                         .font(AppTheme.headlineFont)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppTheme.onPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.primary)
