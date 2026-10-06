@@ -28,10 +28,10 @@ public struct UserSearchSheet: View {
         let presetAthletes: [DiscoveredAthlete] = [
             DiscoveredAthlete(handle: "marcus_vance", name: "Marcus Vance", type: .hybrid, bio: "HYROX Pro & Strength Specialist • Fueling clean", followersCount: 1420),
             DiscoveredAthlete(handle: "elena_sol", name: "Elena Rostova", type: .runner, bio: "Sub-3 Marathoner • Ultra trail runner", followersCount: 2890),
-            DiscoveredAthlete(handle: "kai_nordic", name: "Kai Lindqvist", type: .swimmer, bio: "Open water distance swimmer & triathlete", followersCount: 950),
-            DiscoveredAthlete(handle: "tariq_lift", name: "Tariq Al-Mansoor", type: .bodybuilder, bio: "Classic physique athlete & powerlifter", followersCount: 3120),
-            DiscoveredAthlete(handle: "chloe_cycle", name: "Chloe Bennett", type: .cyclist, bio: "Gravel endurance cyclist • Wattage junkie", followersCount: 1680),
-            DiscoveredAthlete(handle: "alex_cross", name: "Alex Chen", type: .crossfit, bio: "CrossFit Games Open Competitor", followersCount: 2150)
+            DiscoveredAthlete(handle: "kai_nordic", name: "Kai Lindqvist", type: .allAround, bio: "Open water distance swimmer & triathlete", followersCount: 950),
+            DiscoveredAthlete(handle: "tariq_lift", name: "Tariq Al-Mansoor", type: .powerlifter, bio: "Classic physique athlete & powerlifter", followersCount: 3120),
+            DiscoveredAthlete(handle: "chloe_cycle", name: "Chloe Bennett", type: .calisthenics, bio: "Gravel endurance cyclist & bodyweight mastery", followersCount: 1680),
+            DiscoveredAthlete(handle: "alex_cross", name: "Alex Chen", type: .functional, bio: "CrossFit Games Open Competitor", followersCount: 2150)
         ]
 
         for athlete in presetAthletes {
