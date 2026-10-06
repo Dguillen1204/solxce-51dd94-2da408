@@ -928,28 +928,174 @@ struct RunRouteDetailSheet: View {
 
                     // Run Metrics Summary Hero
                     VStack(spacing: AppTheme.Spacing.md) {
-                        Text(run.title)
-                            .font(AppTheme.displayFont)
-                            .foregroundStyle(AppTheme.text)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(run.title)
+                                    .font(AppTheme.displayFont)
+                                    .foregroundStyle(AppTheme.text)
 
-                        Text(run.date.formatted(date: .long, time: .shortened))
-                            .font(AppTheme.captionFont)
-                            .foregroundStyle(AppTheme.textMuted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(run.date.formatted(date: .long, time: .shortened))
+                                    .font(AppTheme.captionFont)
+                                    .foregroundStyle(AppTheme.textMuted)
+                            }
+                            
+                            Spacer()
+                            
+                            // Share Run Button
+                            ShareLink(
+                                item: generateShareText(run: run),
+                                subject: Text("My Solxce Run: \(run.title)"),
+                                message: Text("Crushed \(String(format: "%.2f", run.distanceMiles)) miles in \(run.formattedDuration) with Solxce! 🔥")
+                            ) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Share")
+                                }
+                                .font(AppTheme.subheadlineFont)
+                                .bold()
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(AppTheme.primary)
+                                .clipShape(Capsule())
+                            }
+                        }
 
                         Divider().background(AppTheme.hairline)
 
+                        // 4 Primary Stats
                         HStack(spacing: AppTheme.Spacing.md) {
                             metricBox(label: "DISTANCE", value: "\(String(format: "%.2f", run.distanceMiles)) mi")
                             metricBox(label: "TIME", value: run.formattedDuration)
                             metricBox(label: "AVG PACE", value: run.formattedPace)
                             metricBox(label: "CALORIES", value: "\(run.caloriesBurned) kcal")
                         }
+
+                        // Biometrics Row: Average & Max Heart Rate
+                        if run.averageHeartRateBpm > 0 {
+                            Divider().background(AppTheme.hairline)
+
+                            HStack(spacing: AppTheme.Spacing.lg) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "heart.fill")
+                                        .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.361))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("AVG HEART RATE")
+                                            .font(AppTheme.eyebrowFont)
+                                            .foregroundStyle(AppTheme.textMuted)
+                                        Text("\(run.averageHeartRateBpm) BPM")
+                                            .font(AppTheme.subheadlineFont)
+                                            .bold()
+                                            .foregroundStyle(AppTheme.text)
+                                    }
+                                }
+
+                                if run.maxHeartRateBpm > 0 {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "bolt.heart.fill")
+                                            .foregroundStyle(AppTheme.accent)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("MAX HEART RATE")
+                                                .font(AppTheme.eyebrowFont)
+                                                .foregroundStyle(AppTheme.textMuted)
+                                            Text("\(run.maxHeartRateBpm) BPM")
+                                                .font(AppTheme.subheadlineFont)
+                                                .bold()
+                                                .foregroundStyle(AppTheme.text)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                     .padding(AppTheme.Spacing.md)
                     .background(AppTheme.surface)
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+
+                    // Laps & Mile Splits Breakdown
+                    let laps = run.decodedLaps
+                    if !laps.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("LAP TIMES & SPLITS")
+                                    .font(AppTheme.eyebrowFont)
+                                    .tracking(1.5)
+                                    .foregroundStyle(AppTheme.textSecondary)
+
+                                Spacer()
+
+                                Text("\(laps.count) LAPS")
+                                    .font(AppTheme.captionFont)
+                                    .foregroundStyle(AppTheme.textMuted)
+                            }
+
+                            VStack(spacing: 8) {
+                                ForEach(laps) { lap in
+                                    HStack {
+                                        HStack(spacing: 6) {
+                                            Text("Lap \(lap.lapNumber)")
+                                                .font(AppTheme.bodyFont)
+                                                .bold()
+                                                .foregroundStyle(AppTheme.text)
+                                            if lap.isManualLap {
+                                                Text("MANUAL")
+                                                    .font(.system(size: 8, weight: .black))
+                                                    .foregroundStyle(AppTheme.accent)
+                                                    .padding(.horizontal, 4)
+                                                    .padding(.vertical, 2)
+                                                    .background(AppTheme.accent.opacity(0.15))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                                            }
+                                        }
+
+                                        Spacer()
+
+                                        Text(String(format: "%.2f mi", lap.distanceMiles))
+                                            .font(AppTheme.captionFont)
+                                            .foregroundStyle(AppTheme.textSecondary)
+                                            .frame(width: 60, alignment: .trailing)
+
+                                        Text(lap.formattedDuration)
+                                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(AppTheme.primary)
+                                            .frame(width: 55, alignment: .trailing)
+
+                                        if lap.avgHeartRate > 0 {
+                                            Text("\(lap.avgHeartRate) bpm")
+                                                .font(AppTheme.captionFont)
+                                                .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.361))
+                                                .frame(width: 60, alignment: .trailing)
+                                        }
+                                    }
+                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 10)
+                                    .background(AppTheme.field.opacity(0.6))
+                                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(AppTheme.Spacing.md)
+                        .background(AppTheme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                    }
+
+                    // Share to Community Feed Button
+                    Button(action: {
+                        shareRunToFeed(run: run)
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.3.sequence.fill")
+                            Text("Post Run to Community Feed")
+                        }
+                        .font(AppTheme.headlineFont)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppTheme.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                    }
 
                     if !run.notes.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
@@ -995,5 +1141,68 @@ struct RunRouteDetailSheet: View {
                 .foregroundStyle(AppTheme.primary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func generateShareText(run: RunEntry) -> String {
+        var text = "🏃‍♂️ \(run.title) on Solxce\n"
+        text += "📍 Distance: \(String(format: "%.2f", run.distanceMiles)) miles\n"
+        text += "⏱ Time: \(run.formattedDuration) (\(run.formattedPace))\n"
+        text += "🔥 Calories: \(run.caloriesBurned) kcal\n"
+        if run.averageHeartRateBpm > 0 {
+            text += "❤️ Avg Heart Rate: \(run.averageHeartRateBpm) bpm\n"
+        }
+        let laps = run.decodedLaps
+        if !laps.isEmpty {
+            text += "\n📊 Lap Splits:\n"
+            for lap in laps {
+                text += "• Lap \(lap.lapNumber): \(lap.formattedDuration) (\(String(format: "%.2f", lap.distanceMiles)) mi, \(lap.avgHeartRate > 0 ? "\(lap.avgHeartRate) bpm" : lap.formattedPace))\n"
+            }
+        }
+        text += "\nTracked with Solxce Athletic Intelligence"
+        return text
+    }
+
+    private func shareRunToFeed(run: RunEntry) {
+        let laps = run.decodedLaps
+        var lapSummary = ""
+        if !laps.isEmpty {
+            let fastestLap = laps.min(by: { $0.durationSeconds < $1.durationSeconds })
+            if let best = fastestLap {
+                lapSummary = " · Best Lap: \(best.formattedDuration)"
+            }
+        }
+        let hrText = run.averageHeartRateBpm > 0 ? " · \(run.averageHeartRateBpm) bpm avg HR" : ""
+
+        let newPost = AthletePost(
+            authorName: "Alex Rivera",
+            authorHandle: "alex_solxce",
+            athleteType: .runner,
+            timeAgo: "Just now",
+            workoutTag: "OUTDOOR RUN",
+            workoutStats: "\(String(format: "%.2f", run.distanceMiles)) mi · \(run.formattedDuration) · \(run.formattedPace)\(hrText)\(lapSummary)",
+            caption: run.notes.isEmpty ? "Pushed the pace on today's run. Distance, lap splits, and heart rate logged into Solxce." : run.notes,
+            imageName: "figure.run",
+            mediaType: .photo,
+            mediaItems: [
+                PostMediaItem(
+                    id: UUID().uuidString,
+                    title: "\(String(format: "%.2f", run.distanceMiles)) mi Run",
+                    iconName: "figure.run",
+                    gradientHexes: ["#0B2B26", "#163E36"],
+                    subtitle: "\(run.formattedDuration) · \(run.formattedPace)\(hrText)",
+                    isVideo: false
+                )
+            ],
+            mediaIconName: "figure.run",
+            gradientColors: [Color(red: 0.05, green: 0.18, blue: 0.15), Color(red: 0.1, green: 0.28, blue: 0.22)],
+            audioTrack: AudioTrack.library[1],
+            textOverlay: "\(String(format: "%.2f", run.distanceMiles)) MILES · \(run.formattedPace)",
+            likesCount: 1,
+            isLiked: true,
+            comments: []
+        )
+
+        FeedPostStore.shared.addPost(newPost)
+        dismiss()
     }
 }
