@@ -18,7 +18,15 @@ struct CreateMediaPostSheet: View {
     @State private var workoutFocus: String = "Chest & Heavy Hypertrophy"
     @State private var workoutStats: String = "5 sets · 315 lbs Bench Press PR"
     @State private var caption: String = "Crushed today's session! Progressive overload is hitting all the right marks. ⚡"
+    
+    // TikTok-style Rich Text Overlay State
     @State private var textOverlay: String = "NEW BENCH PR 🔥"
+    @State private var fontStyle: TikTokFontStyle = .neon
+    @State private var highlightMode: TikTokHighlightMode = .filled
+    @State private var textColorHex: String = "#CCFF00"
+    @State private var fontSize: CGFloat = 16
+    @State private var textAlignment: TextAlignment = .center
+    @State private var showingTextEditorSheet: Bool = false
 
     // Multi-Photo Carousel State
     @State private var activeCarouselPhotos: [PostMediaItem] = [
@@ -306,13 +314,17 @@ struct CreateMediaPostSheet: View {
                 }
 
                 if !textOverlay.isEmpty {
-                    Text(textOverlay)
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(AppTheme.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.7))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    TikTokTextBadgeView(
+                        text: textOverlay,
+                        fontStyle: fontStyle,
+                        highlightMode: highlightMode,
+                        textColor: Color(hex: textColorHex),
+                        fontSize: fontSize,
+                        alignment: textAlignment
+                    )
+                    .onTapGesture {
+                        showingTextEditorSheet = true
+                    }
                 }
             }
         }
@@ -564,17 +576,66 @@ struct CreateMediaPostSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
 
-            // Text Sticker Overlay
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Overlay Sticker (Optional)")
-                    .font(AppTheme.captionFont)
-                    .foregroundColor(AppTheme.textSecondary)
+            // Text Sticker Overlay (TikTok Style)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Text Sticker / Overlay")
+                        .font(AppTheme.captionFont)
+                        .foregroundColor(AppTheme.textSecondary)
 
-                TextField("e.g. NEW PR 🔥", text: $textOverlay)
-                    .font(AppTheme.bodyFont)
-                    .padding(12)
-                    .background(AppTheme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    Spacer()
+
+                    Button {
+                        showingTextEditorSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "textformat")
+                            Text("TikTok Text Editor")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundColor(AppTheme.primary)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    TextField("e.g. NEW PR 🔥", text: $textOverlay)
+                        .font(AppTheme.bodyFont)
+                        .padding(12)
+                        .background(AppTheme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                    Button {
+                        showingTextEditorSheet = true
+                    } label: {
+                        Image(systemName: "pencil.and.outline")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(width: 44, height: 44)
+                            .background(Color(hex: "#CCFF00"))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                }
+
+                // Quick Style Pill Selector
+                if !textOverlay.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(TikTokFontStyle.allCases) { style in
+                                Button {
+                                    fontStyle = style
+                                } label: {
+                                    Text(style.rawValue)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(fontStyle == style ? .black : AppTheme.textSecondary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(fontStyle == style ? Color(hex: "#CCFF00") : AppTheme.surface)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
