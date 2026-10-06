@@ -132,11 +132,20 @@ struct FeedView: View {
     @State private var selectedOtherAthleteHandle: String? = nil
     @State private var showingDirectMessages = false
 
+    private var visiblePosts: [Binding<AthletePost>] {
+        $postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle.wrappedValue) }
+    }
+
+    private func handleShare(for post: AthletePost) {
+        let text = "Check out @\(post.authorHandle)'s workout on Solxce: \(post.caption)"
+        shareSheetItem = ShareTextItem(text: text)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 24) {
-                    ForEach($postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle.wrappedValue) }) { $post in
+                    ForEach(visiblePosts) { $post in
                         SimplePostCardView(
                             post: $post,
                             onTapAuthor: {
@@ -145,7 +154,7 @@ struct FeedView: View {
                                 }
                             },
                             onShare: {
-                                shareSheetItem = ShareTextItem(text: "Check out @\(post.authorHandle)'s workout on Solxce: \(post.caption)")
+                                handleShare(for: post)
                             },
                             onOpenReel: {
                                 activeReelPost = post
