@@ -1,15 +1,15 @@
 import Foundation
 
 public enum TenxProject {
-    public static let projectAPIURL = resolvedURL("TENX_PROJECT_API_URL", fallback: "https://prj-df2b2647c7404104.api.10x.app")
-    public static let authBaseURL = resolvedURL("TENX_AUTH_BASE_URL", fallback: "https://prj-df2b2647c7404104.api.10x.app/auth")
-    public static let storageBaseURL = resolvedURL("TENX_STORAGE_BASE_URL", fallback: "https://prj-df2b2647c7404104.api.10x.app/storage")
+    public static let projectAPIURL = resolvedURL("TENX_PROJECT_API_URL", fallback: "https://prj-e0fbee4accec4d3b.api.10x.app")
+    public static let authBaseURL = resolvedURL("TENX_AUTH_BASE_URL", fallback: "https://prj-e0fbee4accec4d3b.api.10x.app/auth")
+    public static let storageBaseURL = resolvedURL("TENX_STORAGE_BASE_URL", fallback: "https://prj-e0fbee4accec4d3b.api.10x.app/storage")
     public static let requestTimeoutInterval: TimeInterval = 20
-public static let dataAPIURL: URL? = resolvedOptionalURL("TENX_DATA_API_URL", fallback: "https://ep-red-wave-b8g4prua.apirest.c-14.us-east-1.aws.neon.tech/neondb/rest/v1")
-public static let jwksURL: URL? = URL(string: "https://tenx-managed-better-auth.onrender.com/.well-known/apps/prj-df2b2647c7404104/jwks.json")
-public static let audience: String? = "prj-df2b2647c7404104"
-public static let appServiceID: String? = "6f45fb07-3dab-4e65-a12e-8226133ca853"
-public static let generatedClientHash: String? = "ba9a317de75de70a5b1abe510a6fa7c57ab7026ade304970cdfb44dc5709ca07"
+public static let dataAPIURL: URL? = resolvedOptionalURL("TENX_DATA_API_URL", fallback: "https://ep-ancient-cloud-b73pmrtj.apirest.c-13.us-east-1.aws.neon.tech/neondb/rest/v1")
+public static let jwksURL: URL? = URL(string: "https://tenx-managed-better-auth.onrender.com/.well-known/apps/prj-e0fbee4accec4d3b/jwks.json")
+public static let audience: String? = "prj-e0fbee4accec4d3b"
+public static let appServiceID: String? = "81dbdd74-fa58-4fea-81ab-c20eb1523782"
+public static let generatedClientHash: String? = "62cf9d2b0f0c3defd7ec92f924cb3bdc281de72f18b4ec8b75646c2320b5e46c"
 public static let storageBuckets: [String] = []
     public static let readyAuthMethods: Set<String> = Set(["emailPassword"])
 
