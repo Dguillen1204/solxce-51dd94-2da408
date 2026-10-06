@@ -759,11 +759,163 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Preferences Section
+    // MARK: - Preferences & Notifications Section
     private var preferencesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: "Preferences", subtitle: "Workout units and companion integrations", icon: "slider.horizontal.3")
+        VStack(alignment: .leading, spacing: 14) {
+            // Notifications Card
+            sectionHeader(title: "Notifications & Alerts", subtitle: "Fasting milestones, workout prompts, and hydration", icon: "bell.badge.fill")
 
+            VStack(spacing: 12) {
+                // Permission Status Row
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Notification Status")
+                            .font(AppTheme.bodyFont)
+                            .foregroundStyle(AppTheme.text)
+                        Text(NotificationManager.shared.isPermissionGranted ? "Notifications authorized by iOS" : "Permission not granted")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(NotificationManager.shared.isPermissionGranted ? AppTheme.primary : AppTheme.textMuted)
+                    }
+
+                    Spacer()
+
+                    if !NotificationManager.shared.isPermissionGranted {
+                        Button {
+                            NotificationManager.shared.requestAuthorization()
+                        } label: {
+                            Text("Enable")
+                                .font(AppTheme.captionFont.weight(.bold))
+                                .foregroundStyle(AppTheme.onPrimary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppTheme.primary)
+                                .clipShape(Capsule())
+                        }
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(AppTheme.primary)
+                    }
+                }
+
+                Divider().overlay(AppTheme.hairline)
+
+                // Intermittent Fasting End Alert
+                Toggle(isOn: Binding(
+                    get: { NotificationManager.shared.fastingNotificationsEnabled },
+                    set: { newVal in
+                        NotificationManager.shared.fastingNotificationsEnabled = newVal
+                        if newVal && !NotificationManager.shared.isPermissionGranted {
+                            NotificationManager.shared.requestAuthorization()
+                        }
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Fasting Timer Completion")
+                            .font(AppTheme.bodyFont)
+                            .foregroundStyle(AppTheme.text)
+                        Text("Alert when fast ends and eating window opens")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .tint(AppTheme.primary)
+
+                Divider().overlay(AppTheme.hairline)
+
+                // Eating Window Warning
+                Toggle(isOn: Binding(
+                    get: { NotificationManager.shared.eatingWindowWarningEnabled },
+                    set: { newVal in
+                        NotificationManager.shared.eatingWindowWarningEnabled = newVal
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Eating Window 30m Warning")
+                            .font(AppTheme.bodyFont)
+                            .foregroundStyle(AppTheme.text)
+                        Text("Pre-warning before eating window closes")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .tint(AppTheme.primary)
+
+                Divider().overlay(AppTheme.hairline)
+
+                // Daily Workout Reminder
+                Toggle(isOn: Binding(
+                    get: { NotificationManager.shared.workoutReminderEnabled },
+                    set: { newVal in
+                        NotificationManager.shared.workoutReminderEnabled = newVal
+                        NotificationManager.shared.scheduleWorkoutReminder()
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Daily Workout Reminder")
+                            .font(AppTheme.bodyFont)
+                            .foregroundStyle(AppTheme.text)
+                        Text("Daily training motivation and logging cue")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .tint(AppTheme.primary)
+
+                Divider().overlay(AppTheme.hairline)
+
+                // Hydration Reminder
+                Toggle(isOn: Binding(
+                    get: { NotificationManager.shared.hydrationReminderEnabled },
+                    set: { newVal in
+                        NotificationManager.shared.hydrationReminderEnabled = newVal
+                        NotificationManager.shared.scheduleHydrationReminders()
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hydration Reminders")
+                            .font(AppTheme.bodyFont)
+                            .foregroundStyle(AppTheme.text)
+                        Text("Periodic reminders to drink water & electrolytes")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .tint(AppTheme.primary)
+
+                Divider().overlay(AppTheme.hairline)
+
+                // Send Test Notification Button
+                Button {
+                    NotificationManager.shared.sendTestNotification(
+                        title: "⚡ Fast Completed!",
+                        body: "Your 16-hour fasting timer reached 100%. Eating window is now open!"
+                    )
+                } label: {
+                    HStack {
+                        Image(systemName: "bell.and.waveform.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(AppTheme.primary)
+                        Text("Send Test Notification")
+                            .font(AppTheme.subheadlineFont.weight(.semibold))
+                            .foregroundStyle(AppTheme.primary)
+                        Spacer()
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(AppTheme.primary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .padding(AppTheme.Spacing.md)
+            .background(AppTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                    .stroke(AppTheme.hairline, lineWidth: 1)
+            )
+
+            // Workout Units Card
             VStack(spacing: 12) {
                 HStack {
                     Text("Weight Units")
