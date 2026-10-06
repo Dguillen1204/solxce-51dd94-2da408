@@ -680,25 +680,145 @@ struct CreateMediaPostSheet: View {
                             }
                         }
 
-                        // Background Box Toggle & Position
-                        VStack(spacing: 14) {
+                        // Background Box Toggle, Quick Alignment & Movement Controls
+                        VStack(spacing: 16) {
                             Toggle("Background Box Overlay", isOn: $overlayHasBackground)
                                 .font(.system(size: 14, weight: .semibold))
                                 .tint(AppTheme.primary)
 
                             Divider().background(AppTheme.hairline)
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Position on Image")
+                            // Quick Jump Alignment
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Quick Alignment")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.white)
 
-                                Picker("Position", selection: $overlayPosition) {
-                                    Text("Top").tag(-0.8)
-                                    Text("Center").tag(0.0)
-                                    Text("Bottom").tag(0.8)
+                                HStack(spacing: 8) {
+                                    Button {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                            textOffsetY = -90
+                                            textOffsetX = 0
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.up.to.line")
+                                            Text("Top")
+                                        }
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(AppTheme.surface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+
+                                    Button {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                            textOffsetX = 0
+                                            textOffsetY = 0
+                                            textRotationDegrees = 0
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "circle.circle")
+                                            Text("Center")
+                                        }
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(AppTheme.surface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+
+                                    Button {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                            textOffsetY = 90
+                                            textOffsetX = 0
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.down.to.line")
+                                            Text("Bottom")
+                                        }
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(AppTheme.surface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
                                 }
-                                .pickerStyle(.segmented)
+
+                                HStack(spacing: 8) {
+                                    Button {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                            textOffsetX = -90
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.left.to.line")
+                                            Text("Left")
+                                        }
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(AppTheme.surface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+
+                                    Button {
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                            textOffsetX = 90
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.right.to.line")
+                                            Text("Right")
+                                        }
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(AppTheme.surface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+                                }
+                            }
+
+                            Divider().background(AppTheme.hairline)
+
+                            // Position Sliders (Precise X / Y Nudges)
+                            VStack(spacing: 12) {
+                                HStack {
+                                    Text("Horizontal (X): \(Int(textOffsetX))")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(AppTheme.silver)
+                                    Spacer()
+                                    Button("Reset X") {
+                                        withAnimation { textOffsetX = 0 }
+                                    }
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(AppTheme.primary)
+                                }
+                                Slider(value: $textOffsetX, in: -140...140, step: 1)
+                                    .tint(AppTheme.primary)
+
+                                HStack {
+                                    Text("Vertical (Y): \(Int(textOffsetY))")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(AppTheme.silver)
+                                    Spacer()
+                                    Button("Reset Y") {
+                                        withAnimation { textOffsetY = 0 }
+                                    }
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(AppTheme.primary)
+                                }
+                                Slider(value: $textOffsetY, in: -110...110, step: 1)
+                                    .tint(AppTheme.primary)
                             }
                         }
                         .padding(14)
