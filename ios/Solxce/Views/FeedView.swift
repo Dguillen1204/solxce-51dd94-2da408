@@ -123,19 +123,27 @@ struct FeedView: View {
     }
 
     @ObservedObject private var postStore = FeedPostStore.shared
+    @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
 
     // Active full screen reel modal
     @State private var activeReelPost: AthletePost? = nil
     @State private var showingCreatePostSheet = false
     @State private var shareSheetItem: ShareTextItem? = nil
+    @State private var selectedOtherAthleteHandle: String? = nil
+    @State private var showingDirectMessages = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 24) {
-                    ForEach($postStore.posts) { $post in
+                    ForEach($postStore.posts.filter { !relationshipStore.isBlocked(handle: $0.authorHandle.wrappedValue) }) { $post in
                         SimplePostCardView(
                             post: $post,
+                            onTapAuthor: {
+                                if post.authorHandle != currentUserHandle {
+                                    selectedOtherAthleteHandle = post.authorHandle
+                                }
+                            },
                             onShare: {
                                 shareSheetItem = ShareTextItem(text: "Check out @\(post.authorHandle)'s workout on Solxce: \(post.caption)")
                             },
@@ -156,18 +164,46 @@ struct FeedView: View {
                     SolxceLogoView(size: 42, showGlow: false)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingCreatePostSheet = true
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("New Post")
-                                .font(AppTheme.headlineFont)
+                    HStack(spacing: 12) {
+                        Button {
+                            showingDirectMessages = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bubble.left.and.bubble.right.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.white)
+
+                                if relationshipStore.conversations.contains(where: { $0.unreadCount > 0 }) {
+                                    Circle()
+                                        .fill(AppTheme.primary)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 3, y: -3)
+                                }
+                            }
                         }
-                        .foregroundColor(AppTheme.primary)
+
+                        Button {
+                            showingCreatePostSheet = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("New Post")
+                                    .font(AppTheme.headlineFont)
+                            }
+                            .foregroundColor(AppTheme.primary)
+                        }
                     }
                 }
+            }
+            .sheet(isPresented: $showingDirectMessages) {
+                DirectMessagesInboxView()
+            }
+            .sheet(item: Binding(
+                get: { selectedOtherAthleteHandle.map { IdentifiableString(id: $0) } },
+                set: { selectedOtherAthleteHandle = $0?.id }
+            )) { item in
+                OtherUserProfileView(handle: item.id)
             }
             .sheet(isPresented: $showingCreatePostSheet) {
                 CreateMediaPostSheet(
@@ -202,6 +238,7 @@ struct FeedView: View {
 // MARK: - Super Simple 9:16 Aspect Post Card with Multi-Picture Carousel & Video
 struct SimplePostCardView: View {
     @Binding var post: AthletePost
+    var onTapAuthor: (() -> Void)? = nil
     var onShare: () -> Void
     var onOpenReel: () -> Void
 
@@ -246,35 +283,40 @@ struct SimplePostCardView: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 10) {
                         // Author Avatar & Handle
-                        HStack(spacing: 8) {
-                            AthleteAvatarView(
-                                imageData: post.authorProfileImageData,
-                                symbolFallback: post.athleteType.iconName,
-                                initials: post.authorName,
-                                ringColor: post.athleteType.badgeColor,
-                                size: 34,
-                                showCameraBadge: false,
-                                isPublic: post.isPublicAuthor
-                            )
+                        Button {
+                            onTapAuthor?()
+                        } label: {
+                            HStack(spacing: 8) {
+                                AthleteAvatarView(
+                                    imageData: post.authorProfileImageData,
+                                    symbolFallback: post.athleteType.iconName,
+                                    initials: post.authorName,
+                                    ringColor: post.athleteType.badgeColor,
+                                    size: 34,
+                                    showCameraBadge: false,
+                                    isPublic: post.isPublicAuthor
+                                )
 
-                            VStack(alignment: .leading, spacing: 1) {
-                                HStack(spacing: 4) {
-                                    Text(post.authorName)
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.white)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    HStack(spacing: 4) {
+                                        Text(post.authorName)
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(.white)
 
-                                    if post.isPublicAuthor {
-                                        Image(systemName: "globe.americas.fill")
-                                            .font(.system(size: 9))
-                                            .foregroundColor(AppTheme.primary)
+                                        if post.isPublicAuthor {
+                                            Image(systemName: "globe.americas.fill")
+                                                .font(.system(size: 9))
+                                                .foregroundColor(AppTheme.primary)
+                                        }
                                     }
-                                }
 
-                                Text("@\(post.authorHandle)")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    Text("@\(post.authorHandle)")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
                             }
                         }
+                        .buttonStyle(.plain)
 
                         Spacer()
 
