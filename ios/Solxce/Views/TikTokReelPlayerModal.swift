@@ -309,8 +309,8 @@ struct TikTokReelPlayerModal: View {
             }
 
             // Video Filter Tint Overlay
-            if post.videoFilter != .normal {
-                post.videoFilter.tintColor
+            if let filter = post.videoFilter, filter != .normal {
+                filter.tintColor
                     .allowsHitTesting(false)
             }
         }
@@ -344,14 +344,14 @@ struct TikTokReelPlayerModal: View {
                                         .fill(AppTheme.surfaceRaised)
                                         .frame(width: 32, height: 32)
                                         .overlay(
-                                            Text(String(comment.authorName.prefix(1)))
+                                            Text(String(comment.author.prefix(1)))
                                                 .font(.system(size: 12, weight: .bold))
                                                 .foregroundColor(AppTheme.primary)
                                         )
 
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack(spacing: 6) {
-                                            Text(comment.authorName)
+                                            Text(comment.author)
                                                 .font(.system(size: 12, weight: .bold))
                                                 .foregroundColor(.white)
                                             Text(comment.timeAgo)
@@ -393,7 +393,8 @@ struct TikTokReelPlayerModal: View {
                         Button {
                             guard !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                             let comment = PostComment(
-                                authorName: "You",
+                                author: "You",
+                                athleteType: post.athleteType,
                                 text: newCommentText,
                                 timeAgo: "Just now"
                             )
