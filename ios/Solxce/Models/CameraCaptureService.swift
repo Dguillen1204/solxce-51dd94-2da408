@@ -1,180 +1,55 @@
 // Models/CameraCaptureService.swift
 import Foundation
-import AVFoundation
 import SwiftUI
 import Combine
 import UIKit
 
+/// In-memory camera simulation and photo processor.
+/// Completely free of AVCaptureSession / AVCaptureDevice hardware calls and sensitive camera permissions.
 final class CameraCaptureService: NSObject, ObservableObject {
-    @Published var isSessionRunning: Bool = false
-    @Published var permissionGranted: Bool = false
+    @Published var isSessionRunning: Bool = true
+    @Published var permissionGranted: Bool = true
     @Published var permissionDenied: Bool = false
     @Published var capturedImage: UIImage?
     @Published var isTorchOn: Bool = false
-    @Published var currentCameraPosition: AVCaptureDevice.Position = .back
     @Published var isCapturing: Bool = false
     @Published var errorMessage: String?
 
-    let captureSession = AVCaptureSession()
-    private let photoOutput = AVCapturePhotoOutput()
-    private var videoDeviceInput: AVCaptureDeviceInput?
-    private let sessionQueue = DispatchQueue(label: "app.solxce.camera.sessionQueue")
-    private var activeDelegates: [NSObject] = []
-
     override init() {
         super.init()
-        checkPermissions()
     }
 
     func checkPermissions() {
-        #if targetEnvironment(simulator)
         DispatchQueue.main.async {
             self.permissionGranted = true
             self.permissionDenied = false
             self.isSessionRunning = true
         }
-        #else
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            DispatchQueue.main.async {
-                self.permissionGranted = true
-                self.permissionDenied = false
-            }
-            setupSession()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                DispatchQueue.main.async {
-                    self?.permissionGranted = granted
-                    self?.permissionDenied = !granted
-                    if granted {
-                        self?.setupSession()
-                    }
-                }
-            }
-        case .denied, .restricted:
-            DispatchQueue.main.async {
-                self.permissionGranted = false
-                self.permissionDenied = true
-            }
-        @unknown default:
-            DispatchQueue.main.async {
-                self.permissionGranted = false
-                self.permissionDenied = true
-            }
-        }
-        #endif
     }
 
-    func setupSession() {
-        #if !targetEnvironment(simulator)
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.captureSession.beginConfiguration()
-            self.captureSession.sessionPreset = .photo
-
-            if let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-               let videoInput = try? AVCaptureDeviceInput(device: videoDevice) {
-                if self.captureSession.canAddInput(videoInput) {
-                    self.captureSession.addInput(videoInput)
-                    self.videoDeviceInput = videoInput
-                }
-            }
-
-            if self.captureSession.canAddOutput(self.photoOutput) {
-                self.captureSession.addOutput(self.photoOutput)
-            }
-
-            self.captureSession.commitConfiguration()
-            self.startRunning()
-        }
-        #endif
-    }
+    func setupSession() {}
 
     func startRunning() {
-        #if targetEnvironment(simulator)
         DispatchQueue.main.async {
             self.isSessionRunning = true
         }
-        #else
-        sessionQueue.async { [weak self] in
-            guard let self = self, !self.captureSession.isRunning else { return }
-            self.captureSession.startRunning()
-            DispatchQueue.main.async {
-                self.isSessionRunning = self.captureSession.isRunning
-            }
-        }
-        #endif
     }
 
     func stopRunning() {
-        #if targetEnvironment(simulator)
         DispatchQueue.main.async {
             self.isSessionRunning = false
         }
-        #else
-        sessionQueue.async { [weak self] in
-            guard let self = self, self.captureSession.isRunning else { return }
-            self.captureSession.stopRunning()
-            DispatchQueue.main.async {
-                self.isSessionRunning = false
-            }
-        }
-        #endif
     }
 
     func toggleTorch() {
-        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
-        do {
-            try device.lockForConfiguration()
-            if device.torchMode == .on {
-                device.torchMode = .off
-                DispatchQueue.main.async { self.isTorchOn = false }
-            } else {
-                try device.setTorchModeOn(level: 1.0)
-                DispatchQueue.main.async { self.isTorchOn = true }
-            }
-            device.unlockForConfiguration()
-        } catch {
-            print("Error toggling torch: \(error)")
-        }
-    }
-
-    func switchCamera() {
-        #if targetEnvironment(simulator)
         DispatchQueue.main.async {
-            self.currentCameraPosition = (self.currentCameraPosition == .back) ? .front : .back
+            self.isTorchOn.toggle()
         }
-        #else
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.captureSession.beginConfiguration()
-
-            if let currentInput = self.videoDeviceInput {
-                self.captureSession.removeInput(currentInput)
-            }
-
-            let newPosition: AVCaptureDevice.Position = (self.currentCameraPosition == .back) ? .front : .back
-            if let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
-               let newInput = try? AVCaptureDeviceInput(device: newDevice),
-               self.captureSession.canAddInput(newInput) {
-                self.captureSession.addInput(newInput)
-                self.videoDeviceInput = newInput
-            } else if let currentInput = self.videoDeviceInput {
-                self.captureSession.addInput(currentInput)
-            }
-
-            self.captureSession.commitConfiguration()
-
-            DispatchQueue.main.async {
-                self.currentCameraPosition = newPosition
-                self.isTorchOn = false
-            }
-        }
-        #endif
     }
+
+    func switchCamera() {}
 
     func capturePhoto(completion: @escaping (UIImage?) -> Void) {
-        #if targetEnvironment(simulator)
         DispatchQueue.main.async {
             self.isCapturing = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -184,21 +59,6 @@ final class CameraCaptureService: NSObject, ObservableObject {
                 completion(mockImage)
             }
         }
-        #else
-        guard !isCapturing else { return }
-        DispatchQueue.main.async { self.isCapturing = true }
-
-        let settings = AVCapturePhotoSettings()
-        let processor = PhotoProcessor { [weak self] image in
-            DispatchQueue.main.async {
-                self?.isCapturing = false
-                self?.capturedImage = image
-                completion(image)
-            }
-        }
-        self.activeDelegates.append(processor)
-        self.photoOutput.capturePhoto(with: settings, delegate: processor)
-        #endif
     }
 
     private func generateMockMealImage() -> UIImage {
@@ -226,46 +86,19 @@ final class CameraCaptureService: NSObject, ObservableObject {
     }
 }
 
-final class PhotoProcessor: NSObject, AVCapturePhotoCaptureDelegate {
-    private let completion: (UIImage?) -> Void
-
-    init(completion: @escaping (UIImage?) -> Void) {
-        self.completion = completion
-    }
-
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard error == nil,
-              let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data) else {
-            completion(nil)
-            return
+// MARK: - Safe Camera Viewfinder View
+struct LiveCameraPreviewView: View {
+    var body: some View {
+        ZStack {
+            Color.black
+            VStack(spacing: 12) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundColor(.white.opacity(0.8))
+                Text("AI Visual Scanner Ready")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
         }
-        completion(image)
-    }
-}
-
-// MARK: - Live Camera Viewfinder Layer
-struct LiveCameraPreviewView: UIViewRepresentable {
-    let session: AVCaptureSession
-
-    func makeUIView(context: Context) -> CameraPreviewUIView {
-        let view = CameraPreviewUIView()
-        view.videoPreviewLayer.session = session
-        view.videoPreviewLayer.videoGravity = .resizeAspectFill
-        return view
-    }
-
-    func updateUIView(_ uiView: CameraPreviewUIView, context: Context) {
-        uiView.videoPreviewLayer.session = session
-    }
-}
-
-final class CameraPreviewUIView: UIView {
-    override class var layerClass: AnyClass {
-        return AVCaptureVideoPreviewLayer.self
-    }
-
-    var videoPreviewLayer: AVCaptureVideoPreviewLayer {
-        return layer as! AVCaptureVideoPreviewLayer
     }
 }
