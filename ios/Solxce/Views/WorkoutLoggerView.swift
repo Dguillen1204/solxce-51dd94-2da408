@@ -5,7 +5,6 @@ import SwiftData
 struct WorkoutLoggerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var healthKit = HealthKitService.shared
 
     @State private var sessionTitle: String = "Chest & Back Power"
@@ -13,7 +12,6 @@ struct WorkoutLoggerView: View {
     @State private var durationMinutes: Int = 45
     @State private var exercises: [DraftExercise] = []
     @State private var showingAddExerciseSheet = false
-    @State private var showingWatchHub: Bool = false
 
     let bodyPartOptions = ["Chest & Triceps", "Back & Biceps", "Legs & Core", "Shoulders & Arms", "Full Body Power", "Chest & Back", "Cardio & Core"]
 
@@ -206,9 +204,6 @@ struct WorkoutLoggerView: View {
                     .foregroundStyle(AppTheme.primary)
                     .disabled(exercises.isEmpty)
                 }
-            }
-            .sheet(isPresented: $showingWatchHub) {
-                AppleWatchHubView()
             }
             .sheet(isPresented: $showingAddExerciseSheet) {
                 AddExerciseSheet { newName, muscle in
