@@ -65,54 +65,6 @@ struct ContentView: View {
         AppAccentColor(rawValue: selectedAccentRaw) ?? .volt
     }
 
-    private func updateTabBarAppearance(for accent: AppAccentColor) {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-        appearance.backgroundColor = UIColor(Color(hex: "#0A0A0C"))
-        appearance.shadowColor = UIColor(Color.white.opacity(0.12)) // subtle hairline top border
-
-        // Configure item appearances for all layouts
-        let layouts = [
-            appearance.stackedLayoutAppearance,
-            appearance.inlineLayoutAppearance,
-            appearance.compactInlineLayoutAppearance
-        ]
-        let accentUIColor = UIColor(accent.color)
-        let unselectedColor = UIColor(Color.white.opacity(0.45))
-
-        for layout in layouts {
-            layout.normal.iconColor = unselectedColor
-            layout.normal.titleTextAttributes = [.foregroundColor: unselectedColor]
-            layout.selected.iconColor = accentUIColor
-            layout.selected.titleTextAttributes = [.foregroundColor: accentUIColor]
-        }
-
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-
-        // Apply immediately to existing UITabBar instances across active window scenes
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            for window in windowScene.windows {
-                for subview in window.subviews {
-                    updateTabBarInViewHierarchy(subview, appearance: appearance, tintColor: accentUIColor)
-                }
-            }
-        }
-    }
-
-    private func updateTabBarInViewHierarchy(_ view: UIView, appearance: UITabBarAppearance, tintColor: UIColor) {
-        if let tabBar = view as? UITabBar {
-            tabBar.standardAppearance = appearance
-            if #available(iOS 15.0, *) {
-                tabBar.scrollEdgeAppearance = appearance
-            }
-            tabBar.tintColor = tintColor
-        }
-        for subview in view.subviews {
-            updateTabBarInViewHierarchy(subview, appearance: appearance, tintColor: tintColor)
-        }
-    }
-
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $selectedTab) {
@@ -163,15 +115,10 @@ struct ContentView: View {
                 .preferredColorScheme(currentAppearance.colorScheme)
         }
         .onAppear {
-            updateTabBarAppearance(for: currentAccent)
             SeedDataManager.seedIfNeeded(context: modelContext)
             if !hasCompletedSignup {
                 showSignUpSheet = true
             }
-        }
-        .onChange(of: selectedAccentRaw) { newRaw in
-            let accent = AppAccentColor(rawValue: newRaw) ?? .volt
-            updateTabBarAppearance(for: accent)
         }
     }
 
