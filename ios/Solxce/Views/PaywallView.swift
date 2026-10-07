@@ -1,12 +1,11 @@
 // Views/PaywallView.swift
 import SwiftUI
-import PassKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var subManager = SubscriptionManager.shared
     @State private var trialEnabled: Bool = true
-    @State private var showingCloseButton: Bool = false
+    @State private var showingCloseButton: Bool = true
     @State private var isShowingLegalSheet: Bool = false
     @State private var selectedLegalDoc: LegalDocumentView.DocumentType = .privacy
     @State private var showApplePaySuccessBanner: Bool = false
@@ -96,267 +95,138 @@ struct PaywallView: View {
                             }
                         }
 
-                        // MARK: - 7-Day Free Trial & Explicit Billing Schedule
+                        // 7-Day Free Trial & Explicit Billing Schedule
                         trialTimelineCard
 
-                        // MARK: - Apple Pay & Standard Checkout CTAs
-                        VStack(spacing: AppTheme.Spacing.sm) {
-                            // Primary Apple Pay CTA Button
-                            Button {
-                                Task {
-                                    let success = await subManager.startTrialWithApplePay(plan: subManager.selectedPlan)
-                                    if success {
-                                        showApplePaySuccessBanner = true
-                                        try? await Task.sleep(nanoseconds: 600_000_000)
-                                        onUnlocked?()
-                                        dismiss()
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    if subManager.isPurchasing {
-                                        ProgressView()
-                                            .tint(.white)
-                                    } else {
-                                        Text("Set up with")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundStyle(.white)
+                        // Primary Action Button
+                        primaryCtaSection
 
-                                        HStack(spacing: 2) {
-                                            Image(systemName: "apple.logo")
-                                                .font(.system(size: 17, weight: .bold))
-                                            Text("Pay")
-                                                .font(.system(size: 17, weight: .bold))
-                                        }
-                                        .foregroundStyle(.white)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(Color.black)
-                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radii.button)
-                                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
-                                )
-                            }
-                            .disabled(subManager.isPurchasing)
-
-                            // Secondary Standard CTA (Credit Card / App Store)
-                            Button {
-                                Task {
-                                    await subManager.purchase(
-                                        plan: subManager.selectedPlan,
-                                        withTrial: trialEnabled,
-                                        method: .creditCard
-                                    )
-                                    onUnlocked?()
-                                    dismiss()
-                                }
-                            } label: {
-                                HStack {
-                                    if subManager.isPurchasing {
-                                        ProgressView()
-                                            .tint(AppTheme.onPrimary)
-                                    } else {
-                                        Text(trialEnabled ? "Start 7-Day Free Trial" : "Subscribe Now")
-                                            .font(AppTheme.headlineFont)
-                                            .bold()
-                                        Image(systemName: "arrow.right")
-                                            .font(.system(size: 14, weight: .bold))
-                                    }
-                                }
-                                .foregroundStyle(AppTheme.onPrimary)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(AppTheme.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
-                            }
-                            .disabled(subManager.isPurchasing)
-
-                            // Transparent billing notice
-                            Text("Auto-renews at \(subManager.selectedPlan.billedAmount) on \(trialChargeDateString). Cancel anytime before then in Apple ID Settings with zero charge.")
-                                .font(.system(size: 11))
-                                .foregroundStyle(AppTheme.textMuted)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, AppTheme.Spacing.sm)
-                        }
-
-                        // Footer Actions
-                        HStack(spacing: AppTheme.Spacing.lg) {
-                            Button("Restore Purchases") {
-                                Task {
-                                    let success = await subManager.restorePurchases()
-                                    if success {
-                                        onUnlocked?()
-                                        dismiss()
-                                    }
-                                }
-                            }
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(AppTheme.textSecondary)
-
-                            Text("•").foregroundStyle(AppTheme.textMuted)
-
-                            Button("Terms of Use") {
-                                selectedLegalDoc = .terms
-                                isShowingLegalSheet = true
-                            }
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(AppTheme.textSecondary)
-
-                            Text("•").foregroundStyle(AppTheme.textMuted)
-
-                            Button("Privacy Policy") {
-                                selectedLegalDoc = .privacy
-                                isShowingLegalSheet = true
-                            }
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(AppTheme.textSecondary)
-                        }
-                        .padding(.top, AppTheme.Spacing.xs)
-                        .padding(.bottom, AppTheme.Spacing.xl)
+                        // Terms & Restore footer
+                        footerLegalRow
                     }
-                    .padding(.horizontal, AppTheme.Spacing.screenMargin)
+                    .padding(.horizontal, AppTheme.Spacing.md)
+                    .padding(.bottom, AppTheme.Spacing.xl)
                 }
             }
         }
         .sheet(isPresented: $isShowingLegalSheet) {
-            LegalDocumentView(selectedDoc: selectedLegalDoc)
-        }
-        .onAppear {
-            // Safe delayed close button reveal for App Review best-practice
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    showingCloseButton = true
-                }
-            }
+            LegalDocumentView(documentType: selectedLegalDoc)
         }
     }
 
-    // MARK: - 7-Day Trial Timeline Card
     private var trialTimelineCard: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
             HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "shield.checkmark.fill")
-                        .foregroundStyle(AppTheme.primary)
-                    Text("7-DAY FREE TRIAL GUARANTEE")
-                        .font(AppTheme.eyebrowFont)
-                        .tracking(1.0)
-                        .foregroundStyle(AppTheme.text)
-                }
+                Image(systemName: "shield.lefthalf.filled.badge.checkmark")
+                    .foregroundStyle(AppTheme.primary)
+                Text("Risk-Free 7-Day Free Trial")
+                    .font(AppTheme.headlineFont)
+                    .foregroundStyle(AppTheme.text)
                 Spacer()
                 Toggle("", isOn: $trialEnabled)
                     .labelsHidden()
                     .tint(AppTheme.primary)
             }
 
-            if trialEnabled {
-                VStack(spacing: 12) {
-                    // Timeline step 1: Today
-                    HStack(alignment: .top, spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.primary)
-                                .frame(width: 22, height: 22)
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .black))
-                                .foregroundStyle(AppTheme.onPrimary)
-                        }
+            Divider().background(AppTheme.hairline)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text("Today: Instant Full Access")
-                                    .font(AppTheme.captionFont.weight(.bold))
-                                    .foregroundStyle(AppTheme.text)
-                                Spacer()
-                                Text("$0.00")
-                                    .font(AppTheme.captionFont.weight(.bold))
-                                    .foregroundStyle(AppTheme.primary)
-                            }
-                            Text("Unlock AI food scanning, fasting alerts, unlimited coaching & analytics immediately.")
-                                .font(.system(size: 12))
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                    }
-
-                    // Vertical connector
-                    HStack {
-                        Rectangle()
-                            .fill(AppTheme.primary.opacity(0.4))
-                            .frame(width: 2, height: 16)
-                            .padding(.leading, 10)
-                        Spacer()
-                    }
-
-                    // Timeline step 2: Day 5 Reminder
-                    HStack(alignment: .top, spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.surfaceRaised)
-                                .frame(width: 22, height: 22)
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(AppTheme.primary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Day 5: Trial Reminder Notification")
-                                .font(AppTheme.captionFont.weight(.bold))
-                                .foregroundStyle(AppTheme.text)
-                            Text("We will notify you 2 days before the trial ends so you can cancel if Solxce is not for you.")
-                                .font(.system(size: 12))
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                    }
-
-                    // Vertical connector
-                    HStack {
-                        Rectangle()
-                            .fill(AppTheme.primary.opacity(0.4))
-                            .frame(width: 2, height: 16)
-                            .padding(.leading, 10)
-                        Spacer()
-                    }
-
-                    // Timeline step 3: Day 7 Charging
-                    HStack(alignment: .top, spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(AppTheme.surfaceRaised)
-                                .frame(width: 22, height: 22)
-                            Image(systemName: "creditcard.fill")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(AppTheme.primary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text("Day 7 (\(trialChargeDateString)): Auto-Charge")
-                                    .font(AppTheme.captionFont.weight(.bold))
-                                    .foregroundStyle(AppTheme.text)
-                                Spacer()
-                                Text(subManager.selectedPlan.postTrialChargeText)
-                                    .font(AppTheme.captionFont.weight(.bold))
-                                    .foregroundStyle(AppTheme.text)
-                            }
-                            Text("Your Apple Pay / payment card will be charged immediately after the 7-day trial ends unless cancelled before.")
-                                .font(.system(size: 12))
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                    }
+            HStack(alignment: .top, spacing: 12) {
+                VStack(spacing: 4) {
+                    Circle()
+                        .fill(AppTheme.primary)
+                        .frame(width: 8, height: 8)
+                    Rectangle()
+                        .fill(AppTheme.hairline)
+                        .frame(width: 2, height: 28)
+                    Circle()
+                        .fill(AppTheme.textMuted)
+                        .frame(width: 8, height: 8)
                 }
                 .padding(.top, 4)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Today")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textMuted)
+                        Text("Instant access to all Pro features for 7 days at $0.00.")
+                            .font(AppTheme.subheadlineFont)
+                            .foregroundStyle(AppTheme.text)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Day 7 (\(trialChargeDateString))")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textMuted)
+                        Text("Trial ends. Subscription renews at \(subManager.selectedPlan.postTrialChargeText) unless cancelled.")
+                            .font(AppTheme.subheadlineFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
             }
         }
         .padding(AppTheme.Spacing.md)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.Radii.card)
-                .strokeBorder(AppTheme.hairline)
-        )
+    }
+
+    private var primaryCtaSection: some View {
+        VStack(spacing: 8) {
+            Button {
+                Task {
+                    _ = await subManager.unlockProWithTrial()
+                    onUnlocked?()
+                    dismiss()
+                }
+            } label: {
+                HStack {
+                    if subManager.isPurchasing {
+                        ProgressView()
+                            .tint(AppTheme.onPrimary)
+                    } else {
+                        Text(trialEnabled ? "Start 7-Day Free Trial" : "Subscribe Now")
+                            .font(AppTheme.headlineFont)
+                            .foregroundStyle(AppTheme.onPrimary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(AppTheme.primary)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
+            }
+            .buttonStyle(.plain)
+
+            Text("Cancel anytime in Settings > Subscriptions at least 24h before renewal.")
+                .font(AppTheme.captionFont)
+                .foregroundStyle(AppTheme.textMuted)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var footerLegalRow: some View {
+        HStack(spacing: 16) {
+            Button("Privacy Policy") {
+                selectedLegalDoc = .privacy
+                isShowingLegalSheet = true
+            }
+            Text("•")
+                .foregroundStyle(AppTheme.textMuted)
+            Button("Terms of Use") {
+                selectedLegalDoc = .terms
+                isShowingLegalSheet = true
+            }
+            Text("•")
+                .foregroundStyle(AppTheme.textMuted)
+            Button("Restore") {
+                Task {
+                    _ = await subManager.restorePurchases()
+                    dismiss()
+                }
+            }
+        }
+        .font(AppTheme.captionFont)
+        .foregroundStyle(AppTheme.textSecondary)
+        .padding(.top, 4)
     }
 
     private func featureRow(_ feature: ProFeature) -> some View {
