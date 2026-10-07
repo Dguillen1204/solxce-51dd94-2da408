@@ -122,7 +122,7 @@ struct PrivacySettingsView: View {
                             Task {
                                 _ = await PhotoLibraryService.shared.requestPermission()
                                 if let url = URL(string: UIApplication.openSettingsURLString) {
-                                    UIApplication.shared.open(url)
+                                    await UIApplication.shared.open(url)
                                 }
                             }
                         }) {
