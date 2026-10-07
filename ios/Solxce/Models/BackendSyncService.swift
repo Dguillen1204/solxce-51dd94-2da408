@@ -91,57 +91,55 @@ public final class BackendSyncService: ObservableObject {
     @discardableResult
     public func recordWorkoutEvent(title: String, durationMinutes: Int, calories: Int) async throws -> Bool {
         guard isAuthenticated, let token = accessToken else { return false }
-        let payload = SyncWorkoutPayload(
-            id: UUID().uuidString,
-            title: title,
-            bodyPartFocus: "Full Body",
-            durationMinutes: durationMinutes,
-            durationSeconds: durationMinutes * 60,
-            calories: calories,
-            date: Date().timeIntervalSince1970,
-            totalVolumeLbs: 0,
-            totalSets: 0
-        )
-        _ = try await data.insert(table: "workouts", value: payload, accessToken: token)
+        let payload: [String: String] = [
+            "title": title,
+            "duration": String(durationMinutes),
+            "calories": String(calories),
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ]
+        _ = try await data.insert(table: "workout_logs", value: payload, accessToken: token)
         return true
     }
 
-    /// Syncs local workout logs to the backend cloud data store
-    public func syncWorkouts(from context: ModelContext) async {
+    /// Syncs local workouts with cloud database
+    public func syncWorkouts(modelContext: ModelContext) async {
         guard isAuthenticated, let token = accessToken else { return }
 
-        isSyncing = true
-        defer { isSyncing = false }
+        self.isSyncing = true
+        self.syncErrorMessage = nil
 
         do {
-            let descriptor = FetchDescriptor<WorkoutSession>()
-            let localWorkouts = try context.fetch(descriptor)
+            let descriptor = FetchDescriptor<WorkoutSession>(
+                predicate: #Predicate { $0.isCompleted }
+            )
+            let completedWorkouts = try modelContext.fetch(descriptor)
 
-            for session in localWorkouts {
+            for session in completedWorkouts {
                 let payload = SyncWorkoutPayload(
                     id: session.id.uuidString,
                     title: session.title,
-                    bodyPartFocus: session.bodyPartFocus,
+                    bodyPartFocus: session.bodyPartFocus.rawValue,
                     durationMinutes: session.durationMinutes,
-                    durationSeconds: session.durationMinutes * 60,
-                    calories: Int(Double(session.durationMinutes) * 7.5),
+                    durationSeconds: session.durationSeconds,
+                    calories: session.caloriesBurned,
                     date: session.date.timeIntervalSince1970,
                     totalVolumeLbs: session.totalVolumeLbs,
                     totalSets: session.totalSets
                 )
 
-                _ = try await data.insert(table: "workouts", value: payload, accessToken: token)
+                _ = try await data.insert(table: "workout_sessions", value: payload, accessToken: token)
             }
 
             self.lastSyncDate = Date()
-            self.syncErrorMessage = nil
         } catch {
             self.syncErrorMessage = error.localizedDescription
         }
+
+        self.isSyncing = false
     }
 
-    /// Syncs profile metadata to the backend
-    public func syncProfileData(name: String, handle: String, athleteType: String) async {
+    /// Updates or pushes user profile data to backend
+    public func syncProfile(name: String, handle: String, athleteType: String) async {
         guard isAuthenticated, let token = accessToken, let userId = currentUserId else { return }
 
         do {
@@ -174,30 +172,22 @@ public final class BackendSyncService: ObservableObject {
 
     /// Uploads an athlete profile photo or workout media data through TenxStorage
     public func uploadMediaData(_ data: Data, filename: String, contentType: String) async throws -> String? {
-        guard let uploadResponse = try await requestMediaUploadURL(filename: filename, contentType: contentType) else {
-            return nil
-        }
-
-        var request = URLRequest(url: uploadResponse.upload.url)
-        request.httpMethod = uploadResponse.upload.method
-        for (headerField, headerValue) in uploadResponse.upload.headers {
-            request.setValue(headerValue, forHTTPHeaderField: headerField)
-        }
-        request.httpBody = data
-
-        let (_, response) = try await URLSession.shared.data(for: request)
-        if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
-            return uploadResponse.object.path
-        }
-        return nil
+        guard let token = accessToken else { return nil }
+        let object = try await storage.upload(
+            data: data,
+            bucket: "media",
+            filename: filename,
+            contentType: contentType,
+            accessToken: token
+        )
+        return object.id
     }
 
     /// Requests a download authorization URL for a stored object
-    public func getDownloadURL(path: String) async throws -> URL? {
+    public func getDownloadURL(objectID: String) async throws -> URL? {
         guard let token = accessToken else { return nil }
-        let downloadResponse = try await storage.createDownload(
-            bucket: "media",
-            path: path,
+        let downloadResponse = try await storage.downloadURL(
+            objectID: objectID,
             accessToken: token
         )
         return downloadResponse.download.url
