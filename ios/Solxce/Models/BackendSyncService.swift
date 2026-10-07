@@ -85,6 +85,31 @@ public final class BackendSyncService: ObservableObject {
         }
     }
 
+    /// Performs authenticated GET request to custom backend API endpoints
+    public func fetchAthleteCloudStats() async throws -> [String: String]? {
+        guard isAuthenticated, let token = accessToken else { return nil }
+        let data = try await client.request(
+            path: "/api/athlete/stats",
+            method: "GET",
+            accessToken: token
+        )
+        return try JSONDecoder().decode([String: String].self, from: data)
+    }
+
+    /// Performs authenticated POST request to backend custom endpoint
+    public func postTelemetryEvent(eventName: String, parameters: [String: String]) async throws -> Bool {
+        guard isAuthenticated, let token = accessToken else { return false }
+        let payload: [String: AnyCodableValue] = parameters.mapValues { AnyCodableValue.string($0) }
+        let bodyData = try JSONEncoder().encode(payload)
+        _ = try await client.request(
+            path: "/api/telemetry",
+            method: "POST",
+            body: bodyData,
+            accessToken: token
+        )
+        return true
+    }
+
     // MARK: - SwiftData / Cloud Sync
 
     /// Records an individual workout event to backend cloud data
