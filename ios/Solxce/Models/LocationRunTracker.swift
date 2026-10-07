@@ -73,7 +73,7 @@ final class LocationRunTracker: NSObject, ObservableObject {
             distanceMiles: lapDist,
             formattedPace: paceStr,
             avgHeartRate: hr,
-            isManualSplit: isManual
+            isManualLap: isManual
         )
         
         laps.append(lap)
