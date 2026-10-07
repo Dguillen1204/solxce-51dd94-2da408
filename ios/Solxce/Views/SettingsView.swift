@@ -519,16 +519,16 @@ struct SettingsView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.blue.opacity(0.12))
                             .frame(width: 38, height: 38)
-                        Image(systemName: "key.fill")
+                        Image(systemName: KeychainHelper.hasPassword() ? "key.fill" : "lock.badge.plus")
                             .font(.system(size: 16))
                             .foregroundStyle(.blue)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Account Password")
+                        Text(KeychainHelper.hasPassword() ? "Account Password" : "Create Account Password")
                             .font(AppTheme.bodyFont.weight(.semibold))
                             .foregroundStyle(AppTheme.text)
-                        Text("Last updated 30 days ago")
+                        Text(KeychainHelper.lastUpdatedString())
                             .font(AppTheme.captionFont)
                             .foregroundStyle(AppTheme.textSecondary)
                     }
@@ -538,7 +538,7 @@ struct SettingsView: View {
                     Button {
                         isShowingPasswordChangeSheet = true
                     } label: {
-                        Text("Change")
+                        Text(KeychainHelper.hasPassword() ? "Change" : "Set Password")
                             .font(AppTheme.captionFont.weight(.bold))
                             .foregroundStyle(AppTheme.primary)
                             .padding(.horizontal, 12)
@@ -912,7 +912,7 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Change Password Modal Sheet
+// MARK: - Change or Create Password Modal Sheet
 struct ChangePasswordSheet: View {
     @Environment(\.dismiss) private var dismiss
     var onSuccess: () -> Void
@@ -920,18 +920,23 @@ struct ChangePasswordSheet: View {
     @State private var currentPassword = ""
     @State private var newPassword = ""
     @State private var confirmPassword = ""
+    @State private var isPasswordVisible = false
     @State private var errorMessage: String? = nil
     @State private var isSaving = false
+
+    private var hasExistingPassword: Bool {
+        KeychainHelper.hasPassword()
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Update Credentials")
+                        Text(hasExistingPassword ? "Update Password" : "Create Account Password")
                             .font(AppTheme.titleFont)
                             .foregroundStyle(AppTheme.text)
-                        Text("Choose a strong password with at least 8 characters.")
+                        Text(hasExistingPassword ? "Enter your current password and set a new one." : "Create a secure password to protect your athlete data and unlock sign-in across devices.")
                             .font(AppTheme.captionFont)
                             .foregroundStyle(AppTheme.textSecondary)
                     }
@@ -951,37 +956,83 @@ struct ChangePasswordSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("CURRENT PASSWORD")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(AppTheme.textSecondary)
+                    if hasExistingPassword {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("CURRENT PASSWORD")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(AppTheme.textSecondary)
 
-                        SecureField("Current password", text: $currentPassword)
+                            Group {
+                                if isPasswordVisible {
+                                    TextField("Enter current password", text: $currentPassword)
+                                } else {
+                                    SecureField("Enter current password", text: $currentPassword)
+                                }
+                            }
                             .padding(12)
                             .background(AppTheme.field)
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("NEW PASSWORD")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(AppTheme.textSecondary)
+                        HStack {
+                            Text(hasExistingPassword ? "NEW PASSWORD" : "PASSWORD")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(AppTheme.textSecondary)
+                            Spacer()
+                            Button {
+                                isPasswordVisible.toggle()
+                            } label: {
+                                Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
+                        }
 
-                        SecureField("At least 8 characters", text: $newPassword)
-                            .padding(12)
-                            .background(AppTheme.field)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                        Group {
+                            if isPasswordVisible {
+                                TextField("At least 8 characters", text: $newPassword)
+                            } else {
+                                SecureField("At least 8 characters", text: $newPassword)
+                            }
+                        }
+                        .padding(12)
+                        .background(AppTheme.field)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+
+                        if !newPassword.isEmpty {
+                            HStack(spacing: 4) {
+                                ForEach(0..<4) { idx in
+                                    Rectangle()
+                                        .fill(passwordStrengthColor(score: passwordStrengthScore, index: idx))
+                                        .frame(height: 3)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            .padding(.top, 2)
+
+                            Text(passwordStrengthLabel)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(passwordStrengthColor(score: passwordStrengthScore, index: 0))
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("CONFIRM NEW PASSWORD")
+                        Text(hasExistingPassword ? "CONFIRM NEW PASSWORD" : "CONFIRM PASSWORD")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(AppTheme.textSecondary)
 
-                        SecureField("Re-enter new password", text: $confirmPassword)
-                            .padding(12)
-                            .background(AppTheme.field)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                        Group {
+                            if isPasswordVisible {
+                                TextField("Re-enter password", text: $confirmPassword)
+                            } else {
+                                SecureField("Re-enter password", text: $confirmPassword)
+                            }
+                        }
+                        .padding(12)
+                        .background(AppTheme.field)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
                     }
 
                     Button {
@@ -991,7 +1042,7 @@ struct ChangePasswordSheet: View {
                             ProgressView()
                                 .tint(.black)
                         } else {
-                            Text("Update Password")
+                            Text(hasExistingPassword ? "Update Password" : "Save Password")
                                 .font(AppTheme.headlineFont.weight(.bold))
                                 .foregroundStyle(AppTheme.onPrimary)
                         }
@@ -1005,7 +1056,7 @@ struct ChangePasswordSheet: View {
                 .padding(AppTheme.Spacing.screenMargin)
             }
             .background(AppTheme.ground.ignoresSafeArea())
-            .navigationTitle("Change Password")
+            .navigationTitle(hasExistingPassword ? "Change Password" : "Set Password")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -1018,23 +1069,66 @@ struct ChangePasswordSheet: View {
         }
     }
 
+    private var passwordStrengthScore: Int {
+        var score = 0
+        if newPassword.count >= 8 { score += 1 }
+        if newPassword.rangeOfCharacter(from: .uppercaseLetters) != nil && newPassword.rangeOfCharacter(from: .lowercaseLetters) != nil { score += 1 }
+        if newPassword.rangeOfCharacter(from: .decimalDigits) != nil { score += 1 }
+        if newPassword.rangeOfCharacter(from: .punctuationCharacters) != nil || newPassword.rangeOfCharacter(from: .symbols) != nil { score += 1 }
+        return score
+    }
+
+    private var passwordStrengthLabel: String {
+        switch passwordStrengthScore {
+        case 0, 1: return "Weak password"
+        case 2: return "Moderate password"
+        case 3: return "Strong password"
+        default: return "Very strong password"
+        }
+    }
+
+    private func passwordStrengthColor(score: Int, index: Int) -> Color {
+        if index >= score {
+            return AppTheme.surfaceRaised
+        }
+        switch score {
+        case 1: return .red
+        case 2: return .orange
+        case 3: return AppTheme.primary
+        default: return .green
+        }
+    }
+
     private func validateAndSave() {
         errorMessage = nil
-        if currentPassword.isEmpty {
-            errorMessage = "Please enter your current password."
-            return
+        if hasExistingPassword {
+            guard !currentPassword.isEmpty else {
+                errorMessage = "Please enter your current password."
+                return
+            }
+            if let saved = KeychainHelper.getPassword(), !saved.isEmpty, saved != currentPassword {
+                errorMessage = "Current password does not match."
+                return
+            }
         }
         if newPassword.count < 8 {
             errorMessage = "New password must be at least 8 characters."
             return
         }
         if newPassword != confirmPassword {
-            errorMessage = "New passwords do not match."
+            errorMessage = "Passwords do not match."
             return
         }
 
         isSaving = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        _ = KeychainHelper.savePassword(newPassword)
+        
+        let email = UserDefaults.standard.string(forKey: "solxce_user_email") ?? "athlete@solxce.app"
+        Task {
+            _ = try? await BackendSyncService.shared.signUp(email: email, password: newPassword)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             isSaving = false
             dismiss()
             onSuccess()
