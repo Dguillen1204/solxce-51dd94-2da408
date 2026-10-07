@@ -84,6 +84,9 @@ public final class BackendSyncService: ObservableObject {
         )
         return true
     }
+
+    /// Syncs local workout logs to the backend cloud data store
+    public func syncWorkouts(from context: ModelContext) async {
         guard isAuthenticated, let token = accessToken else { return }
 
         isSyncing = true
