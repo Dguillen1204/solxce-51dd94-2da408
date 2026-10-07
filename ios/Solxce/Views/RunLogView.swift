@@ -197,7 +197,6 @@ struct RunLogView: View {
             lockScreenManager.clearLockScreenActivity()
         }
     }
-    }
 
     private func handleElapsedSecondsChange(seconds: Int) {
         let healthKitHr = healthKit.currentHeartRateBpm
