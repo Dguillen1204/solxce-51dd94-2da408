@@ -17,7 +17,6 @@ struct RunLogView: View {
     @Query(sort: \RunEntry.date, order: .reverse) private var pastRuns: [RunEntry]
 
     @StateObject private var tracker = LocationRunTracker()
-    @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var healthKit = HealthKitService.shared
     @ObservedObject private var lockScreenManager = RunLiveActivityManager.shared
     
@@ -26,7 +25,6 @@ struct RunLogView: View {
     @State private var notes: String = ""
     @State private var showFinishConfirmation: Bool = false
     @State private var selectedHistoricalRun: RunEntry? = nil
-    @State private var showingWatchHub: Bool = false
     @State private var showingLockScreenSimulator: Bool = false
     
     // Map View Camera
@@ -77,9 +75,6 @@ struct RunLogView: View {
                 }
                 .sheet(item: $selectedHistoricalRun) { run in
                     RunRouteDetailSheet(run: run)
-                }
-                .sheet(isPresented: $showingWatchHub) {
-                    AppleWatchHubView()
                 }
                 .sheet(isPresented: $showingLockScreenSimulator) {
                     RunLockScreenSimulatorSheet()
@@ -221,16 +216,8 @@ struct RunLogView: View {
     }
 
     private func handleElapsedSecondsChange(seconds: Int) {
-        let currentTelemetryHr = watchManager.liveTelemetry.heartRateBpm
         let healthKitHr = healthKit.currentHeartRateBpm
-        let hr: Double
-        if currentTelemetryHr > 0 {
-            hr = currentTelemetryHr
-        } else if healthKitHr > 0 {
-            hr = healthKitHr
-        } else {
-            hr = 152.0
-        }
+        let hr: Double = healthKitHr > 0 ? healthKitHr : 152.0
         
         lockScreenManager.updateMetrics(
             title: runTitle,
@@ -243,16 +230,6 @@ struct RunLogView: View {
             isTracking: tracker.isTracking,
             isPaused: tracker.isPaused,
             lapNumber: max(1, tracker.laps.count + 1)
-        )
-
-        guard tracker.isTracking && !tracker.isPaused && seconds % 2 == 0 else { return }
-        watchManager.sendWorkoutStateToWatch(
-            isActive: true,
-            title: runTitle,
-            elapsedSeconds: seconds,
-            heartRate: hr,
-            calories: tracker.estimatedCaloriesBurned,
-            pace: tracker.currentPaceFormatted
         )
     }
 
@@ -275,23 +252,6 @@ struct RunLogView: View {
                 }
 
                 Spacer()
-
-                // Apple Watch Live Connection Pill
-                Button {
-                    showingWatchHub = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: watchManager.pairingStatus.iconName)
-                            .font(.system(size: 11, weight: .bold))
-                        Text(watchManager.pairingStatus == .pairedAndReachable ? "WATCH LINKED" : "WATCH")
-                            .font(.system(size: 10, weight: .bold))
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(watchManager.pairingStatus.tintColor.opacity(0.15))
-                    .foregroundStyle(watchManager.pairingStatus.tintColor)
-                    .clipShape(Capsule())
-                }
 
                 if tracker.isSimulatedMovement {
                     Text("SIMULATED")
@@ -425,9 +385,9 @@ struct RunLogView: View {
                 Divider()
                     .background(AppTheme.hairline)
 
-                // Apple Watch Live Heart Rate Tile
+                // Live Heart Rate Tile
                 VStack(spacing: 2) {
-                    let hr = watchManager.liveTelemetry.heartRateBpm > 0 ? Int(watchManager.liveTelemetry.heartRateBpm) : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 146)
+                    let hr = healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 146
                     HStack(spacing: 3) {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 14))
