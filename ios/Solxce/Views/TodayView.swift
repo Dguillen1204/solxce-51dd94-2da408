@@ -13,7 +13,6 @@ struct TodayView: View {
 
     @ObservedObject private var fasting = FastingManager.shared
     @ObservedObject private var subManager = SubscriptionManager.shared
-    @ObservedObject private var watchManager = AppleWatchSyncManager.shared
 
     @State private var showingPlanner = false
     @State private var showingWorkoutLogger = false
@@ -23,7 +22,6 @@ struct TodayView: View {
     @State private var showingCameraScanner = false
     @State private var showingProgressReport = false
     @State private var showingPaywall = false
-    @State private var showingWatchHub = false
 
     @Binding var selectedTab: Int
 
