@@ -401,7 +401,7 @@ struct RunLogView: View {
                         
                         if tracker.isTracking && !tracker.isPaused {
                             Button(action: {
-                                let currentHr = watchManager.liveTelemetry.heartRateBpm > 0 ? Int(watchManager.liveTelemetry.heartRateBpm) : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 152)
+                                let currentHr = healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 152
                                 tracker.recordLap(avgHeartRate: currentHr, isManual: true)
                             }) {
                                 HStack(spacing: 4) {
@@ -466,7 +466,7 @@ struct RunLogView: View {
                     Spacer()
 
                     Button(action: {
-                        let currentHr = watchManager.liveTelemetry.heartRateBpm > 0 ? Int(watchManager.liveTelemetry.heartRateBpm) : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 152)
+                        let currentHr = healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 152
                         tracker.recordLap(avgHeartRate: currentHr, isManual: true)
                     }) {
                         HStack(spacing: 4) {
