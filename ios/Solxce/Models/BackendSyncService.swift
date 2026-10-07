@@ -139,6 +139,11 @@ public final class BackendSyncService: ObservableObject {
     }
 
     /// Updates or pushes user profile data to backend
+    public func syncProfileData(name: String, handle: String, athleteType: String) async {
+        await syncProfile(name: name, handle: handle, athleteType: athleteType)
+    }
+
+    /// Updates or pushes user profile data to backend
     public func syncProfile(name: String, handle: String, athleteType: String) async {
         guard isAuthenticated, let token = accessToken, let userId = currentUserId else { return }
 
