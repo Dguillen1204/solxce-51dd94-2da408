@@ -13,6 +13,7 @@ struct ProfileView: View {
     @ObservedObject private var postStore = FeedPostStore.shared
     @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
+    @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
 
     @State private var showingEditGoals = false
     @State private var showingPaywall = false
@@ -535,11 +536,11 @@ struct ProfileView: View {
                                 Text(tab.rawValue)
                                     .font(.system(size: 13, weight: selectedMediaTab == tab ? .bold : .medium))
                             }
-                            .foregroundStyle(selectedMediaTab == tab ? AppTheme.primary : AppTheme.textSecondary)
+                            .foregroundStyle(selectedMediaTab == tab ? (AppAccentColor(rawValue: selectedAccentRaw)?.color ?? AppTheme.primary) : AppTheme.textSecondary)
 
                             // Underline indicator
                             Rectangle()
-                                .fill(selectedMediaTab == tab ? AppTheme.primary : Color.clear)
+                                .fill(selectedMediaTab == tab ? (AppAccentColor(rawValue: selectedAccentRaw)?.color ?? AppTheme.primary) : Color.clear)
                                 .frame(height: 2)
                         }
                     }
