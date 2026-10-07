@@ -16,12 +16,10 @@ struct TrainTabView: View {
 
     @Query(sort: \WorkoutSession.date, order: .reverse) private var workoutSessions: [WorkoutSession]
     @Query(sort: \RunEntry.date, order: .reverse) private var runEntries: [RunEntry]
-    @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var healthKit = HealthKitService.shared
 
     @State private var showingWorkoutLogger = false
     @State private var showingRunLogger = false
-    @State private var showingWatchHub = false
     @State private var selectedFilter: TrainSectionFilter = .all
 
     enum TrainSectionFilter: String, CaseIterable {
@@ -68,9 +66,6 @@ struct TrainTabView: View {
             .sheet(isPresented: $showingRunLogger) {
                 RunLogView()
             }
-            .sheet(isPresented: $showingWatchHub) {
-                AppleWatchHubView()
-            }
         }
     }
 
@@ -84,26 +79,6 @@ struct TrainTabView: View {
                     .foregroundStyle(AppTheme.textSecondary)
 
                 Spacer()
-
-                Button {
-                    showingWatchHub = true
-                } label: {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(watchManager.pairingStatus.tintColor)
-                            .frame(width: 7, height: 7)
-                        Image(systemName: watchManager.pairingStatus.iconName)
-                            .font(.system(size: 11, weight: .bold))
-                        Text(watchManager.pairingStatus == .pairedAndReachable ? "WATCH SYNCED" : "WATCH")
-                            .font(AppTheme.captionFont.weight(.heavy))
-                            .tracking(0.8)
-                    }
-                    .foregroundStyle(watchManager.pairingStatus.tintColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(AppTheme.surfaceRaised)
-                    .clipShape(Capsule())
-                }
             }
 
             Text("Train Hard.")
