@@ -5,7 +5,14 @@ import SwiftData
 /// Dedicated Train Tab for the Apex Performance architecture
 struct TrainTabView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \WorkoutSession.date, order: .reverse) private var workoutSessions: [WorkoutSession]
+    @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
+    private var activeAccentColor: Color {
+        AppAccentColor(rawValue: selectedAccentRaw)?.color ?? AppTheme.primary
+    }
+
+    private var activeAccentGradient: LinearGradient {
+        AppAccentColor(rawValue: selectedAccentRaw)?.gradient ?? AppTheme.accentGradient
+    }
     @Query(sort: \RunEntry.date, order: .reverse) private var runEntries: [RunEntry]
     @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var healthKit = HealthKitService.shared
@@ -231,7 +238,7 @@ struct TrainTabView: View {
                 value: "\(workoutSessions.count + runEntries.count)",
                 unit: "sessions",
                 icon: "checkmark.seal.fill",
-                accentColor: AppTheme.primary
+                accentColor: activeAccentColor
             )
         }
     }
@@ -275,7 +282,7 @@ struct TrainTabView: View {
                         .foregroundStyle(selectedFilter == filter ? AppTheme.onPrimary : AppTheme.textSecondary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(selectedFilter == filter ? AppTheme.primary : AppTheme.surface)
+                        .background(selectedFilter == filter ? activeAccentColor : AppTheme.surface)
                         .clipShape(Capsule())
                 }
             }
