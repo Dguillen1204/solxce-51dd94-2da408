@@ -33,6 +33,10 @@
     <key>NSCameraUsageDescription</key>
     <string>Solxce uses your camera to scan meals for instant AI macro nutrition logging and capture workout progress media.</string>
 
+    <!-- Microphone Privacy Key -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Solxce uses the microphone to record audio during video posts and workout progress reels.</string>
+
     <!-- Photo Library Privacy Keys -->
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Solxce accesses your photo library so you can select and share workout photos and video reels with the community.</string>
@@ -50,10 +54,20 @@
     <string>Solxce syncs your planned training sessions and athletic workouts directly to your personal calendar.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>Solxce requires calendar access to schedule, modify, and synchronize your upcoming workout events.</string>
+    <key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+    <string>Solxce creates and updates scheduled training routines in your calendar.</string>
 
     <!-- Apple Music / Media Privacy Key -->
     <key>NSAppleMusicUsageDescription</key>
     <string>Solxce accesses Apple Music so you can attach soundtrack cues and preview motivational tracks during workouts.</string>
+
+    <!-- Motion & Fitness Privacy Key -->
+    <key>NSMotionUsageDescription</key>
+    <string>Solxce uses motion and step detection to provide real-time cadence and pace telemetry during run tracking.</string>
+
+    <!-- User Tracking / Notifications Keys -->
+    <key>NSUserTrackingUsageDescription</key>
+    <string>Solxce uses app activity to provide personalized athletic coaching recommendations and community highlights.</string>
 
     <!-- Background Modes for Workout & Run Tracking -->
     <key>UIBackgroundModes</key>
