@@ -21,6 +21,64 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
     
+    <!-- Location Privacy Keys -->
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Solxce uses your location in the background and foreground to accurately track your outdoor run routes, distance, splits, elevation, and live GPS telemetry.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Solxce requires location access to map your outdoor running paths, track real-time pace, and calculate workout distance.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Solxce requires continuous background location access to map and record your long-distance running workouts even when your phone is locked.</string>
+
+    <!-- Camera & Media Privacy Keys -->
+    <key>NSCameraUsageDescription</key>
+    <string>Solxce uses your camera to scan meals for instant AI macro nutrition logging and capture workout progress media.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Solxce uses the microphone to record audio with workout video reels and capture voice notes for coaching logs.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Solxce allows you to select and share workout photos and video reels with the community.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Solxce requires permission to save exported workout summaries, milestone graphics, and run recap cards to your photo library.</string>
+
+    <!-- Health & Motion Privacy Keys -->
+    <key>NSHealthShareUsageDescription</key>
+    <string>Solxce reads your heart rate, active energy, resting metabolic rate, and steps to provide personalized athletic coaching telemetry.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Solxce writes completed workouts, running sessions, and nutritional intake to Apple Health.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Solxce uses pedometer and motion data to measure running cadence, step frequency, and activity metrics during training.</string>
+
+    <!-- Bluetooth & Accessories Privacy Keys -->
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Solxce uses Bluetooth to connect to heart rate monitors, smart sensors, and fitness wearables during training sessions.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>Solxce requires Bluetooth access to discover and pair with fitness accessories and chest straps.</string>
+
+    <!-- Calendar & Reminders Privacy Keys -->
+    <key>NSCalendarsUsageDescription</key>
+    <string>Solxce lets you sync planned training sessions and athletic workouts directly to your calendar.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Solxce needs calendar access to schedule, modify, and synchronize your upcoming workout events.</string>
+    <key>NSRemindersUsageDescription</key>
+    <string>Solxce sets reminders for scheduled training runs, workout sessions, and hydration goals.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>Solxce manages training reminders and daily habit checklists.</string>
+
+    <!-- Media Library & Speech & Biometrics Privacy Keys -->
+    <key>NSAppleMusicUsageDescription</key>
+    <string>Solxce lets you attach soundtrack cues and preview motivational tracks during workouts.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Solxce uses Face ID to securely authenticate athlete profiles and protect private workout and health data.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Solxce uses speech recognition to transcribe hands-free voice coaching notes and spoken workout logs.</string>
+
+    <!-- Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>audio</string>
+        <string>fetch</string>
+    </array>
+
     <key>UILaunchScreen</key>
     <dict/>
     <key>UIRequiredDeviceCapabilities</key>
