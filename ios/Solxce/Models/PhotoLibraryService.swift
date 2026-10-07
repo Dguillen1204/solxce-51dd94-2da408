@@ -1,7 +1,7 @@
 // Models/PhotoLibraryService.swift
 import Foundation
 import Photos
-import SwiftUI
+import UIKit
 
 /// Service governing photo library authorization, permission status, and direct asset saving
 @MainActor
@@ -49,26 +49,18 @@ final class PhotoLibraryService: ObservableObject {
     }
 
     /// Save an image to the user's Photo Library after requesting permission
-    func saveImageToPhotoLibrary(_ image: UIImage) async -> Result<Void, Error> {
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> Bool {
         let granted = await requestAddOnlyPermission()
-        guard granted else {
-            let err: Error = NSError(domain: "PhotoLibraryService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Photo Library access not granted"])
-            return .failure(err)
-        }
+        guard granted else { return false }
 
         return await withCheckedContinuation { continuation in
             PHPhotoLibrary.shared().performChanges({
                 PHAssetChangeRequest.creationRequestForAsset(from: image)
-            }) { success, error in
+            }, completionHandler: { success, _ in
                 DispatchQueue.main.async {
-                    if success {
-                        continuation.resume(returning: .success(()))
-                    } else {
-                        let failureError: Error = error ?? NSError(domain: "PhotoLibraryService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save image"])
-                        continuation.resume(returning: .failure(failureError))
-                    }
+                    continuation.resume(returning: success)
                 }
-            }
+            })
         }
     }
 }
