@@ -82,46 +82,6 @@ struct WorkoutLoggerView: View {
                             summaryChip(label: "TOTAL SETS", value: "\(totalSets)")
                             summaryChip(label: "EXERCISES", value: "\(exercises.count)")
                         }
-                        
-                        // Apple Watch Live Companion Status Bar
-                        Button {
-                            showingWatchHub = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: watchManager.pairingStatus.iconName)
-                                    .foregroundStyle(watchManager.pairingStatus.tintColor)
-                                    .font(.system(size: 13, weight: .bold))
-                                
-                                Text(watchManager.pairingStatus == .pairedAndReachable ? "Apple Watch Connected" : "Apple Watch: \(watchManager.pairingStatus.rawValue)")
-                                    .font(AppTheme.captionFont.weight(.semibold))
-                                    .foregroundStyle(AppTheme.text)
-                                
-                                Spacer()
-                                
-                                let hr = watchManager.liveTelemetry.heartRateBpm > 0 ? Int(watchManager.liveTelemetry.heartRateBpm) : (healthKit.currentHeartRateBpm > 0 ? Int(healthKit.currentHeartRateBpm) : 138)
-                                HStack(spacing: 3) {
-                                    Image(systemName: "heart.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.361))
-                                    Text("\(hr) BPM")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(AppTheme.text)
-                                }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(AppTheme.surfaceRaised)
-                                .clipShape(Capsule())
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(AppTheme.textSecondary)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(AppTheme.field)
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
-                        }
-                        .buttonStyle(.plain)
                     }
                     .padding(AppTheme.Spacing.md)
                     .background(AppTheme.surface)

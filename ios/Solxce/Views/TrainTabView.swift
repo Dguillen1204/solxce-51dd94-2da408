@@ -40,7 +40,7 @@ struct TrainTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppTheme.Spacing.lg) {
-                    // Header Status & Live Watch Companion Bar
+                    // Header Status & Section Hero
                     headerHeroSection
 
                     // Quick Action Dual Launchers (Strength + Run)

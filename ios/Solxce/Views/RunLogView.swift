@@ -180,7 +180,7 @@ struct RunLogView: View {
     }
 
     private func handleTrackingStateChange(isTracking: Bool) {
-        let hr: Double = watchManager.liveTelemetry.heartRateBpm > 0 ? watchManager.liveTelemetry.heartRateBpm : (healthKit.currentHeartRateBpm > 0 ? healthKit.currentHeartRateBpm : 148.0)
+        let hr = healthKit.currentHeartRateBpm > 0 ? healthKit.currentHeartRateBpm : 152.0
         lockScreenManager.updateMetrics(
             title: runTitle,
             distanceMiles: tracker.totalDistanceMiles,
@@ -193,26 +193,10 @@ struct RunLogView: View {
             isPaused: tracker.isPaused,
             lapNumber: max(1, tracker.laps.count + 1)
         )
-        if isTracking {
-            watchManager.sendWorkoutStateToWatch(
-                isActive: true,
-                title: runTitle,
-                elapsedSeconds: tracker.elapsedSeconds,
-                heartRate: hr,
-                calories: tracker.estimatedCaloriesBurned,
-                pace: tracker.currentPaceFormatted
-            )
-        } else if !tracker.isPaused {
-            watchManager.sendWorkoutStateToWatch(
-                isActive: false,
-                title: runTitle,
-                elapsedSeconds: tracker.elapsedSeconds,
-                heartRate: 0,
-                calories: tracker.estimatedCaloriesBurned,
-                pace: "--'--\""
-            )
+        if !isTracking && !tracker.isPaused {
             lockScreenManager.clearLockScreenActivity()
         }
+    }
     }
 
     private func handleElapsedSecondsChange(seconds: Int) {
