@@ -25,16 +25,24 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: 'UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight'
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_NSAppleMusicUsageDescription: 'Solxce accesses Apple Music so you can attach soundtrack cues and preview motivational tracks during workouts.'
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: 'Solxce connects to Bluetooth heart rate monitors, smart fitness sensors, and athletic wearables during workouts.'
+        INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription: 'Solxce discovers and pairs with Bluetooth fitness accessories and chest strap heart rate monitors.'
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: 'Solxce requires calendar access to schedule, modify, and synchronize your upcoming workout events.'
         INFOPLIST_KEY_NSCalendarsUsageDescription: 'Solxce syncs your planned training sessions and athletic workouts directly to your personal calendar.'
         INFOPLIST_KEY_NSCameraUsageDescription: 'Solxce uses your camera to scan meals for instant AI macro nutrition logging and capture workout progress media.'
+        INFOPLIST_KEY_NSFaceIDUsageDescription: 'Solxce uses Face ID to securely authenticate your profile and protect private workout and health telemetry.'
         INFOPLIST_KEY_NSHealthShareUsageDescription: 'Solxce reads your heart rate, active energy burned, resting metabolic rate, and step counts to provide personalized athletic coaching and live telemetry.'
         INFOPLIST_KEY_NSHealthUpdateUsageDescription: 'Solxce writes completed workouts, running sessions, and nutritional intake data to Apple Health.'
         INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: 'Solxce uses your location in the background and foreground to accurately track your outdoor run routes, distance, splits, elevation, and live GPS telemetry.'
         INFOPLIST_KEY_NSLocationAlwaysUsageDescription: 'Solxce requires continuous background location access to map and record your long-distance running workouts even when your phone is locked.'
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: 'Solxce requires location access to map your outdoor running paths, track real-time pace, and calculate workout distance.'
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: 'Solxce uses your microphone to record audio with your workout video reels and capture voice notes for coaching logs.'
+        INFOPLIST_KEY_NSMotionUsageDescription: 'Solxce uses motion and pedometer data to measure running cadence, step frequency, and live athletic activity metrics.'
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: 'Solxce saves exported workout summaries, progress milestone graphics, and running route recap cards to your photo library.'
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: 'Solxce accesses your photo library so you can select and share workout photos and video reels with the community.'
+        INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: 'Solxce manages training reminders and daily habit checklists across your devices.'
+        INFOPLIST_KEY_NSRemindersUsageDescription: 'Solxce sets reminders for your scheduled training runs, workout sessions, and daily hydration goals.'
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: 'Solxce uses speech recognition to transcribe voice coaching commands and spoken workout logs hands-free.'
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: 1
         CODE_SIGN_STYLE: Automatic
