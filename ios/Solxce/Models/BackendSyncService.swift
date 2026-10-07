@@ -3,6 +3,28 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+/// Codable payload for syncing workout records
+private struct SyncWorkoutPayload: Codable {
+    let id: String
+    let title: String
+    let bodyPartFocus: String
+    let durationMinutes: Int
+    let durationSeconds: Int
+    let calories: Int
+    let date: Double
+    let totalVolumeLbs: Double
+    let totalSets: Int
+}
+
+/// Codable payload for syncing profile data
+private struct SyncProfilePayload: Codable {
+    let id: String
+    let name: String
+    let handle: String
+    let athleteType: String
+    let updatedAt: Double
+}
+
 /// Manages syncing workout records, athlete profiles, and cloud storage
 /// using the generated 10x backend clients (TenxAuth, BackendClient, TenxData, TenxStorage).
 @MainActor
@@ -20,35 +42,35 @@ public final class BackendSyncService: ObservableObject {
     private let data = TenxData()
     private let storage = TenxStorage()
 
-    private var accessToken: String? {
-        auth.session?.accessToken
-    }
+    private var accessToken: String?
 
-    private init() {
-        self.isAuthenticated = auth.session != nil
-        self.currentUserId = auth.session?.user.id
-    }
+    private init() {}
 
     // MARK: - Authentication
 
-    public func signUp(email: String, password: String) async throws -> TenxAuthSession {
-        let session = try await auth.signUp(email: email, password: password)
+    public func signUp(email: String, password: String) async throws -> TenxAuthResponse {
+        let response = try await auth.signUp(email: email, password: password)
         self.isAuthenticated = true
-        self.currentUserId = session.user.id
-        return session
+        self.currentUserId = response.user.id
+        self.accessToken = response.accessToken
+        return response
     }
 
-    public func signIn(email: String, password: String) async throws -> TenxAuthSession {
-        let session = try await auth.signIn(email: email, password: password)
+    public func signIn(email: String, password: String) async throws -> TenxAuthResponse {
+        let response = try await auth.signIn(email: email, password: password)
         self.isAuthenticated = true
-        self.currentUserId = session.user.id
-        return session
+        self.currentUserId = response.user.id
+        self.accessToken = response.accessToken
+        return response
     }
 
     public func signOut() async throws {
-        try await auth.signOut()
+        if let token = accessToken {
+            try? await auth.signOut(accessToken: token)
+        }
         self.isAuthenticated = false
         self.currentUserId = nil
+        self.accessToken = nil
     }
 
     // MARK: - Backend Client Endpoints
@@ -56,8 +78,8 @@ public final class BackendSyncService: ObservableObject {
     /// Fetches system health and status from backend
     public func checkHealth() async -> Bool {
         do {
-            let res = try await client.health()
-            return res.status == "ok"
+            let res = try await client.request(path: "/health")
+            return !res.isEmpty
         } catch {
             return false
         }
@@ -69,19 +91,18 @@ public final class BackendSyncService: ObservableObject {
     @discardableResult
     public func recordWorkoutEvent(title: String, durationMinutes: Int, calories: Int) async throws -> Bool {
         guard isAuthenticated, let token = accessToken else { return false }
-        let workoutDoc: [String: AnyCodable] = [
-            "title": AnyCodable(title),
-            "durationMinutes": AnyCodable(durationMinutes),
-            "durationSeconds": AnyCodable(durationMinutes * 60),
-            "calories": AnyCodable(calories),
-            "date": AnyCodable(Date().timeIntervalSince1970)
-        ]
-        _ = try await data.upsertDocument(
-            collection: "workouts",
+        let payload = SyncWorkoutPayload(
             id: UUID().uuidString,
-            data: workoutDoc,
-            accessToken: token
+            title: title,
+            bodyPartFocus: "Full Body",
+            durationMinutes: durationMinutes,
+            durationSeconds: durationMinutes * 60,
+            calories: calories,
+            date: Date().timeIntervalSince1970,
+            totalVolumeLbs: 0,
+            totalSets: 0
         )
+        _ = try await data.insert(table: "workouts", value: payload, accessToken: token)
         return true
     }
 
@@ -97,23 +118,19 @@ public final class BackendSyncService: ObservableObject {
             let localWorkouts = try context.fetch(descriptor)
 
             for session in localWorkouts {
-                let workoutDoc: [String: AnyCodable] = [
-                    "title": AnyCodable(session.title),
-                    "sportType": AnyCodable(session.sportType.rawValue),
-                    "durationSeconds": AnyCodable(session.durationSeconds),
-                    "calories": AnyCodable(session.calories),
-                    "date": AnyCodable(session.date.timeIntervalSince1970),
-                    "isCompleted": AnyCodable(session.isCompleted),
-                    "avgHeartRate": AnyCodable(session.avgHeartRate ?? 0),
-                    "distanceMeters": AnyCodable(session.distanceMeters ?? 0)
-                ]
-
-                _ = try await data.upsertDocument(
-                    collection: "workouts",
+                let payload = SyncWorkoutPayload(
                     id: session.id.uuidString,
-                    data: workoutDoc,
-                    accessToken: token
+                    title: session.title,
+                    bodyPartFocus: session.bodyPartFocus,
+                    durationMinutes: session.durationMinutes,
+                    durationSeconds: session.durationMinutes * 60,
+                    calories: Int(Double(session.durationMinutes) * 7.5),
+                    date: session.date.timeIntervalSince1970,
+                    totalVolumeLbs: session.totalVolumeLbs,
+                    totalSets: session.totalSets
                 )
+
+                _ = try await data.insert(table: "workouts", value: payload, accessToken: token)
             }
 
             self.lastSyncDate = Date()
@@ -128,19 +145,15 @@ public final class BackendSyncService: ObservableObject {
         guard isAuthenticated, let token = accessToken, let userId = currentUserId else { return }
 
         do {
-            let profileDoc: [String: AnyCodable] = [
-                "name": AnyCodable(name),
-                "handle": AnyCodable(handle),
-                "athleteType": AnyCodable(athleteType),
-                "updatedAt": AnyCodable(Date().timeIntervalSince1970)
-            ]
-
-            _ = try await data.upsertDocument(
-                collection: "profiles",
+            let payload = SyncProfilePayload(
                 id: userId,
-                data: profileDoc,
-                accessToken: token
+                name: name,
+                handle: handle,
+                athleteType: athleteType,
+                updatedAt: Date().timeIntervalSince1970
             )
+
+            _ = try await data.insert(table: "profiles", value: payload, accessToken: token)
         } catch {
             self.syncErrorMessage = error.localizedDescription
         }
