@@ -52,7 +52,8 @@ final class PhotoLibraryService: ObservableObject {
     func saveImageToPhotoLibrary(_ image: UIImage) async -> Result<Void, Error> {
         let granted = await requestAddOnlyPermission()
         guard granted else {
-            return .failure(NSError(domain: "PhotoLibraryService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Photo Library access not granted"]))
+            let err: Error = NSError(domain: "PhotoLibraryService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Photo Library access not granted"])
+            return .failure(err)
         }
 
         return await withCheckedContinuation { continuation in
@@ -63,7 +64,8 @@ final class PhotoLibraryService: ObservableObject {
                     if success {
                         continuation.resume(returning: .success(()))
                     } else {
-                        continuation.resume(returning: .failure(error ?? NSError(domain: "PhotoLibraryService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save image"])))
+                        let failureError: Error = error ?? NSError(domain: "PhotoLibraryService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save image"])
+                        continuation.resume(returning: .failure(failureError))
                     }
                 }
             }
