@@ -7,7 +7,11 @@ struct SolxceApp: App {
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
 
     init() {
-        // Standardize TabBar appearance with solid obsidian ground & hairline top border matching screenshot 3
+        // Standardize TabBar appearance with dynamic theme accent
+        Self.updateTabBarAppearance(accentColor: AppTheme.activeAccent.color)
+    }
+
+    public static func updateTabBarAppearance(accentColor: Color) {
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
         appearance.backgroundColor = UIColor(Color(hex: "#0A0A0C"))
@@ -18,8 +22,9 @@ struct SolxceApp: App {
         normalItem.titleTextAttributes = [.foregroundColor: UIColor(Color.white.opacity(0.45))]
         
         let selectedItem = appearance.stackedLayoutAppearance.selected
-        selectedItem.iconColor = UIColor(Color(hex: "#CCFF00"))
-        selectedItem.titleTextAttributes = [.foregroundColor: UIColor(Color(hex: "#CCFF00"))]
+        let uiAccent = UIColor(accentColor)
+        selectedItem.iconColor = uiAccent
+        selectedItem.titleTextAttributes = [.foregroundColor: uiAccent]
         
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
@@ -83,6 +88,7 @@ struct ContentView: View {
                 FeedView()
                     .tabItem {
                         Image("FeedCustomIcon")
+                            .renderingMode(.template)
                     }
                     .tag(2)
 
@@ -99,6 +105,11 @@ struct ContentView: View {
                     .tag(4)
             }
             .tint(currentAccent.color)
+            .id(selectedAccentRaw)
+            .onChange(of: selectedAccentRaw) { _, newRaw in
+                let newAccent = AppAccentColor(rawValue: newRaw) ?? .volt
+                SolxceApp.updateTabBarAppearance(accentColor: newAccent.color)
+            }
 
             // Floating AI Assistant Circle Button (Bottom Right)
             floatingAIButton
