@@ -104,6 +104,44 @@ struct PrivacySettingsView: View {
                 }
                 .listRowBackground(Color.white.opacity(0.04))
 
+                // Section: System Permissions & Photo Access
+                Section {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Photos & Media Library")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text("Required for selecting training media, avatar uploads, and saving workout cards.")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+
+                        Spacer()
+
+                        Button(action: {
+                            Task {
+                                _ = await PhotoLibraryService.shared.requestPermission()
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                        }) {
+                            Text("Manage")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(AppTheme.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(AppTheme.primary.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                    }
+                } header: {
+                    Text("DEVICE PERMISSIONS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(AppTheme.primary)
+                }
+                .listRowBackground(Color.white.opacity(0.04))
+
                 // Section: Safety & Blocked Accounts
                 Section {
                     Toggle(isOn: $relationshipStore.privacyRules.filterOffensiveComments) {
