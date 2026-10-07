@@ -109,19 +109,17 @@ public final class BackendSyncService: ObservableObject {
         self.syncErrorMessage = nil
 
         do {
-            let descriptor = FetchDescriptor<WorkoutSession>(
-                predicate: #Predicate { $0.isCompleted }
-            )
-            let completedWorkouts = try modelContext.fetch(descriptor)
+            let descriptor = FetchDescriptor<WorkoutSession>()
+            let workouts = try modelContext.fetch(descriptor)
 
-            for session in completedWorkouts {
+            for session in workouts {
                 let payload = SyncWorkoutPayload(
                     id: session.id.uuidString,
                     title: session.title,
-                    bodyPartFocus: session.bodyPartFocus.rawValue,
+                    bodyPartFocus: session.bodyPartFocus,
                     durationMinutes: session.durationMinutes,
-                    durationSeconds: session.durationSeconds,
-                    calories: session.caloriesBurned,
+                    durationSeconds: session.durationMinutes * 60,
+                    calories: 0,
                     date: session.date.timeIntervalSince1970,
                     totalVolumeLbs: session.totalVolumeLbs,
                     totalSets: session.totalSets
