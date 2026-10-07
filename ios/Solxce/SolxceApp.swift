@@ -152,6 +152,15 @@ struct ContentView: View {
                 .padding(.trailing, 16)
                 .padding(.bottom, 62) // Positioned nicely above the TabBar
         }
+        .sheet(isPresented: $showAICoachSheet) {
+            AICoachChatView()
+                .presentationDragIndicator(.visible)
+                .preferredColorScheme(currentAppearance.colorScheme)
+        }
+        .fullScreenCover(isPresented: $showSignUpSheet) {
+            OnboardingAthleteSignUpView(isCompleted: $hasCompletedSignup)
+                .preferredColorScheme(currentAppearance.colorScheme)
+        }
         .onAppear {
             updateTabBarAppearance(for: currentAccent)
             SeedDataManager.seedIfNeeded(context: modelContext)
