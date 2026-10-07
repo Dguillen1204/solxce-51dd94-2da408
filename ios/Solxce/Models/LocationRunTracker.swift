@@ -226,35 +226,6 @@ final class LocationRunTracker: NSObject, ObservableObject {
     }
 }
 
-// MARK: - Lap Model
-public struct RunLapData: Identifiable, Hashable, Codable {
-    public let id: UUID
-    public let lapNumber: Int
-    public let durationSeconds: Int
-    public let distanceMiles: Double
-    public let formattedPace: String
-    public let avgHeartRate: Int
-    public let isManualSplit: Bool
-
-    public init(
-        id: UUID = UUID(),
-        lapNumber: Int,
-        durationSeconds: Int,
-        distanceMiles: Double,
-        formattedPace: String,
-        avgHeartRate: Int,
-        isManualSplit: Bool = true
-    ) {
-        self.id = id
-        self.lapNumber = lapNumber
-        self.durationSeconds = durationSeconds
-        self.distanceMiles = distanceMiles
-        self.formattedPace = formattedPace
-        self.avgHeartRate = avgHeartRate
-        self.isManualSplit = isManualSplit
-    }
-}
-
 // MARK: - Mile Split Model
 public struct RunSplit: Identifiable, Hashable, Codable {
     public let id: UUID

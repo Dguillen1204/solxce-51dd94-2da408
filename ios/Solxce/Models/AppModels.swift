@@ -226,7 +226,7 @@ final class RunEntry {
         date: Date = Date(),
         caloriesBurned: Int = 0,
         notes: String = "",
-        routeCoordinates: [CLLocationCoordinate2D] = [],
+        routeCoordinates: [RunCoordinate] = [],
         averageHeartRateBpm: Int = 0,
         maxHeartRateBpm: Int = 0,
         laps: [RunLapData] = []
@@ -286,14 +286,14 @@ final class RunEntry {
         return String(format: "%d:%02d", mins, secs)
     }
     
-    var decodedRouteCoordinates: [CLLocationCoordinate2D] {
+    var decodedRouteCoordinates: [RunCoordinate] {
         guard let data = routeDataJson.data(using: .utf8),
               let pairs = try? JSONDecoder().decode([[Double]].self, from: data) else {
             return []
         }
         return pairs.compactMap { pair in
             guard pair.count == 2 else { return nil }
-            return CLLocationCoordinate2D(latitude: pair[0], longitude: pair[1])
+            return RunCoordinate(latitude: pair[0], longitude: pair[1])
         }
     }
 }
