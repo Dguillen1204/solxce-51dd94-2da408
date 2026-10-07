@@ -65,8 +65,25 @@ public final class BackendSyncService: ObservableObject {
 
     // MARK: - SwiftData / Cloud Sync
 
-    /// Syncs local workout logs to the backend cloud data store
-    public func syncWorkouts(from context: ModelContext) async {
+    /// Records an individual workout event to backend cloud data
+    @discardableResult
+    public func recordWorkoutEvent(title: String, durationMinutes: Int, calories: Int) async throws -> Bool {
+        guard isAuthenticated, let token = accessToken else { return false }
+        let workoutDoc: [String: AnyCodable] = [
+            "title": AnyCodable(title),
+            "durationMinutes": AnyCodable(durationMinutes),
+            "durationSeconds": AnyCodable(durationMinutes * 60),
+            "calories": AnyCodable(calories),
+            "date": AnyCodable(Date().timeIntervalSince1970)
+        ]
+        _ = try await data.upsertDocument(
+            collection: "workouts",
+            id: UUID().uuidString,
+            data: workoutDoc,
+            accessToken: token
+        )
+        return true
+    }
         guard isAuthenticated, let token = accessToken else { return }
 
         isSyncing = true
