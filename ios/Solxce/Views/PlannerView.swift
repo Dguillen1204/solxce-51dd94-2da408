@@ -513,7 +513,7 @@ struct PlannerView: View {
     }
 
     private var selectedDateDeviceEventsCard: some View {
-        let eventsOnDate = calendarSync.upcomingEvents.filter { event in
+        let eventsOnDate = calendarSync.deviceEvents.filter { event in
             Calendar.current.isDate(event.startDate, inSameDayAs: selectedDateForInspection)
         }
 
@@ -543,10 +543,11 @@ struct PlannerView: View {
                 .padding(.vertical, 16)
             } else {
                 VStack(spacing: 8) {
-                    ForEach(eventsOnDate, id: \.eventIdentifier) { event in
+                    ForEach(eventsOnDate) { event in
+                        let isSolxce = event.title.localizedCaseInsensitiveContains("Solxce")
                         HStack(spacing: 12) {
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(event.isSolxceWorkout ? AppTheme.primary : Color.blue)
+                                .fill(isSolxce ? AppTheme.primary : event.calendarColor)
                                 .frame(width: 4, height: 32)
 
                             VStack(alignment: .leading, spacing: 2) {
@@ -560,7 +561,7 @@ struct PlannerView: View {
 
                             Spacer()
 
-                            if event.isSolxceWorkout {
+                            if isSolxce {
                                 Text("SOLXCE")
                                     .font(.system(size: 9, weight: .bold))
                                     .padding(.horizontal, 6)
