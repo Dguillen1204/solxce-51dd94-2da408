@@ -712,50 +712,6 @@ struct PlannerView: View {
     }
 }
 
-// MARK: - FlowLayout Component for Wrapping Tags
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? 0
-        var height: CGFloat = 0
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var rowMaxHeight: CGFloat = 0
-
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if currentX + size.width > width && currentX > 0 {
-                currentX = 0
-                currentY += rowMaxHeight + spacing
-                rowMaxHeight = 0
-            }
-            rowMaxHeight = max(rowMaxHeight, size.height)
-            currentX += size.width + spacing
-        }
-        height = currentY + rowMaxHeight
-        return CGSize(width: width, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var currentX = bounds.minX
-        var currentY = bounds.minY
-        var rowMaxHeight: CGFloat = 0
-
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if currentX + size.width > bounds.maxX && currentX > bounds.minX {
-                currentX = bounds.minX
-                currentY += rowMaxHeight + spacing
-                rowMaxHeight = 0
-            }
-            view.place(at: CGPoint(x: currentX, y: currentY), proposal: .unspecified)
-            rowMaxHeight = max(rowMaxHeight, size.height)
-            currentX += size.width + spacing
-        }
-    }
-}
-
 // MARK: - Day Detail Exercise Sheet (Read & Quick Action)
 struct DayDetailExerciseSheet: View {
     @Environment(\.dismiss) private var dismiss
