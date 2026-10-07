@@ -13,6 +13,8 @@ struct TrainTabView: View {
     private var activeAccentGradient: LinearGradient {
         AppAccentColor(rawValue: selectedAccentRaw)?.gradient ?? AppTheme.accentGradient
     }
+
+    @Query(sort: \WorkoutSession.date, order: .reverse) private var workoutSessions: [WorkoutSession]
     @Query(sort: \RunEntry.date, order: .reverse) private var runEntries: [RunEntry]
     @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var healthKit = HealthKitService.shared
