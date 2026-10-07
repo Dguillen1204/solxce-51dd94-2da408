@@ -99,7 +99,9 @@ public final class BackendSyncService: ObservableObject {
     /// Performs authenticated POST request to backend custom endpoint
     public func postTelemetryEvent(eventName: String, parameters: [String: String]) async throws -> Bool {
         guard isAuthenticated, let token = accessToken else { return false }
-        let payload: [String: AnyCodableValue] = parameters.mapValues { AnyCodableValue.string($0) }
+        var payload = parameters
+        payload["eventName"] = eventName
+        payload["timestamp"] = ISO8601DateFormatter().string(from: Date())
         let bodyData = try JSONEncoder().encode(payload)
         _ = try await client.request(
             path: "/api/telemetry",
