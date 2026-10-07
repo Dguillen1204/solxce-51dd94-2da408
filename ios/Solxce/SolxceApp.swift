@@ -28,18 +28,27 @@ struct SolxceApp: App {
         appearance.backgroundColor = UIColor(Color(hex: "#0A0A0C"))
         appearance.shadowColor = UIColor(Color.white.opacity(0.12)) // subtle hairline top border
         
-        let normalItem = appearance.stackedLayoutAppearance.normal
-        normalItem.iconColor = UIColor(Color.white.opacity(0.45))
-        normalItem.titleTextAttributes = [.foregroundColor: UIColor(Color.white.opacity(0.45))]
+        let normalAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor(Color.white.opacity(0.45))
+        ]
+        let selectedAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: uiColor
+        ]
         
-        let selectedItem = appearance.stackedLayoutAppearance.selected
-        selectedItem.iconColor = uiColor
-        selectedItem.titleTextAttributes = [.foregroundColor: uiColor]
+        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(Color.white.opacity(0.45))
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttributes
+        appearance.stackedLayoutAppearance.selected.iconColor = uiColor
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttributes
         
-        appearance.inlineLayoutAppearance.normal = normalItem
-        appearance.inlineLayoutAppearance.selected = selectedItem
-        appearance.compactInlineLayoutAppearance.normal = normalItem
-        appearance.compactInlineLayoutAppearance.selected = selectedItem
+        appearance.inlineLayoutAppearance.normal.iconColor = UIColor(Color.white.opacity(0.45))
+        appearance.inlineLayoutAppearance.normal.titleTextAttributes = normalAttributes
+        appearance.inlineLayoutAppearance.selected.iconColor = uiColor
+        appearance.inlineLayoutAppearance.selected.titleTextAttributes = selectedAttributes
+        
+        appearance.compactInlineLayoutAppearance.normal.iconColor = UIColor(Color.white.opacity(0.45))
+        appearance.compactInlineLayoutAppearance.normal.titleTextAttributes = normalAttributes
+        appearance.compactInlineLayoutAppearance.selected.iconColor = uiColor
+        appearance.compactInlineLayoutAppearance.selected.titleTextAttributes = selectedAttributes
         
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
