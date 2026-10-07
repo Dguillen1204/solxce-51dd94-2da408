@@ -8,7 +8,11 @@ struct OtherUserProfileView: View {
     let initialAthleteType: AthleteType?
 
     @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
-    @ObservedObject private var postStore = FeedPostStore.shared
+    @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
+
+    private var activeAccentColor: Color {
+        AppAccentColor(rawValue: selectedAccentRaw)?.color ?? AppTheme.primary
+    }
 
     @State private var selectedTab: ProfileMediaTab = .posts
     @State private var showBlockConfirmation: Bool = false
@@ -466,10 +470,10 @@ struct OtherUserProfileView: View {
                         VStack(spacing: 6) {
                             Text(tab.rawValue)
                                 .font(.system(size: 13, weight: selectedTab == tab ? .heavy : .semibold))
-                                .foregroundColor(selectedTab == tab ? AppTheme.primary : .white.opacity(0.5))
+                                .foregroundColor(selectedTab == tab ? activeAccentColor : .white.opacity(0.5))
 
                             Rectangle()
-                                .fill(selectedTab == tab ? AppTheme.primary : Color.clear)
+                                .fill(selectedTab == tab ? activeAccentColor : Color.clear)
                                 .frame(height: 2)
                         }
                     }
