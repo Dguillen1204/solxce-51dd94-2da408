@@ -9,7 +9,6 @@ struct ProfileView: View {
     @Query private var runEntries: [RunEntry]
     @Query private var macroTargets: [MacroTarget]
     @ObservedObject private var subManager = SubscriptionManager.shared
-    @ObservedObject private var watchManager = AppleWatchSyncManager.shared
     @ObservedObject private var postStore = FeedPostStore.shared
     @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
     @AppStorage("solxce_app_appearance") private var appAppearanceRaw: String = AppAppearance.system.rawValue
@@ -21,7 +20,6 @@ struct ProfileView: View {
     @State private var showingFastingTracker = false
     @State private var showingEditAthleteType = false
     @State private var showingEditPhotoSheet = false
-    @State private var showingWatchHub = false
     @State private var showingSettings = false
     @State private var showingSchedulePlanner = false
     @State private var showingPrivacyRulesSheet = false
@@ -123,9 +121,6 @@ struct ProfileView: View {
                     // Athlete Archetype Pass Card
                     athleteArchetypeCard
 
-                    // Apple Watch Companion Pass Card
-                    appleWatchProfileCard
-
                     // Instagram-Style Profile Content Tab Bar
                     profileMediaSection
 
@@ -221,9 +216,6 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingEditPhotoSheet) {
                 ProfilePhotoPickerSheet(profile: currentProfile)
-            }
-            .sheet(isPresented: $showingWatchHub) {
-                AppleWatchHubView()
             }
             .sheet(isPresented: $showingPrivacyRulesSheet) {
                 PrivacySettingsView()
