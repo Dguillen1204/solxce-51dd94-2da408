@@ -1017,7 +1017,6 @@ struct EditPlannerDaySheet: View {
     @State private var newExerciseText: String = ""
     @State private var selectedMuscleGroup: String = "Chest & Triceps"
     @State private var isRest: Bool = false
-    @State private var showPresetSelector: Bool = false
 
     let bodyPartOptions = [
         "Chest & Triceps",
@@ -1072,245 +1071,13 @@ struct EditPlannerDaySheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppTheme.Spacing.lg) {
-                    // Day Header & Rest Switch
-                    VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(day.dayName) Training Target")
-                                    .font(AppTheme.headlineFont)
-                                    .foregroundStyle(AppTheme.text)
-                                Text("Choose target muscle group or toggle Rest Day")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundStyle(AppTheme.textSecondary)
-                            }
-                            Spacer()
-                        }
-
-                        Toggle(isOn: $isRest) {
-                            HStack(spacing: 8) {
-                                Image(systemName: isRest ? "moon.stars.fill" : "flame.fill")
-                                    .foregroundStyle(isRest ? AppTheme.accent : AppTheme.primary)
-                                Text("Scheduled Rest Day")
-                                    .font(AppTheme.subheadlineFont.weight(.semibold))
-                                    .foregroundStyle(AppTheme.text)
-                            }
-                        }
-                        .tint(AppTheme.accent)
-                        .onChange(of: isRest) { _, newValue in
-                            if newValue {
-                                selectedMuscleGroup = "Rest Day"
-                            } else if selectedMuscleGroup == "Rest Day" {
-                                selectedMuscleGroup = "Chest & Triceps"
-                            }
-                        }
-                    }
-                    .padding(AppTheme.Spacing.md)
-                    .background(AppTheme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                    dayTargetHeaderSection
 
                     if !isRest {
-                        // Target Muscle Picker
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
-                            Text("TARGET MUSCLE GROUP")
-                                .font(AppTheme.eyebrowFont)
-                                .tracking(1.2)
-                                .foregroundStyle(AppTheme.textSecondary)
-
-                            Menu {
-                                ForEach(bodyPartOptions, id: \.self) { option in
-                                    Button {
-                                        selectedMuscleGroup = option
-                                    } label: {
-                                        HStack {
-                                            Text(option)
-                                            if selectedMuscleGroup == option {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "figure.strengthtraining.traditional")
-                                        .foregroundStyle(AppTheme.primary)
-                                    Text(selectedMuscleGroup)
-                                        .font(AppTheme.headlineFont)
-                                        .foregroundStyle(AppTheme.text)
-                                    Spacer()
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(AppTheme.textMuted)
-                                }
-                                .padding(AppTheme.Spacing.md)
-                                .background(AppTheme.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
-                                        .strokeBorder(AppTheme.primary.opacity(0.3), lineWidth: 1)
-                                )
-                            }
-                        }
-
-                        // Exercise Customizer Section
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
-                            HStack {
-                                Text("PLANNED EXERCISES")
-                                    .font(AppTheme.eyebrowFont)
-                                    .tracking(1.2)
-                                    .foregroundStyle(AppTheme.textSecondary)
-
-                                Spacer()
-
-                                if let presets = presetLibrary[selectedMuscleGroup], !presets.isEmpty {
-                                    Button {
-                                        loadPresets(presets)
-                                    } label: {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "sparkles")
-                                                .font(.system(size: 11))
-                                            Text("Load Preset Routine")
-                                                .font(AppTheme.eyebrowFont)
-                                        }
-                                        .foregroundStyle(AppTheme.primary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(AppTheme.primary.opacity(0.12))
-                                        .clipShape(Capsule())
-                                    }
-                                }
-                            }
-
-                            // Add New Exercise Row
-                            HStack(spacing: 8) {
-                                TextField("Add exercise (e.g. Incline DB Press)", text: $newExerciseText)
-                                    .font(AppTheme.subheadlineFont)
-                                    .foregroundStyle(AppTheme.text)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 10)
-                                    .background(AppTheme.field)
-                                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
-                                    .onSubmit {
-                                        addExercise()
-                                    }
-
-                                Button(action: addExercise) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundStyle(AppTheme.onPrimary)
-                                        .padding(11)
-                                        .background(newExerciseText.trimmingCharacters(in: .whitespaces).isEmpty ? AppTheme.surfaceRaised : AppTheme.primary)
-                                        .clipShape(Circle())
-                                }
-                                .disabled(newExerciseText.trimmingCharacters(in: .whitespaces).isEmpty)
-                            }
-
-                            // Exercise List Items
-                            if exerciseList.isEmpty {
-                                VStack(spacing: 6) {
-                                    Image(systemName: "list.bullet.rectangle")
-                                        .font(.system(size: 26))
-                                        .foregroundStyle(AppTheme.textMuted)
-                                    Text("No exercises added yet")
-                                        .font(AppTheme.subheadlineFont)
-                                        .foregroundStyle(AppTheme.textSecondary)
-                                    Text("Type an exercise above or tap 'Load Preset Routine'.")
-                                        .font(AppTheme.captionFont)
-                                        .foregroundStyle(AppTheme.textMuted)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 24)
-                                .background(AppTheme.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
-                            } else {
-                                VStack(spacing: 6) {
-                                    ForEach(Array(exerciseList.enumerated()), id: \.offset) { index, item in
-                                        HStack(spacing: 10) {
-                                            ZStack {
-                                                Circle()
-                                                    .fill(AppTheme.primary.opacity(0.15))
-                                                    .frame(width: 26, height: 26)
-                                                Text("\(index + 1)")
-                                                    .font(.system(size: 11, weight: .bold))
-                                                    .foregroundStyle(AppTheme.primary)
-                                            }
-
-                                            Text(item)
-                                                .font(AppTheme.subheadlineFont)
-                                                .foregroundStyle(AppTheme.text)
-
-                                            Spacer()
-
-                                            Button {
-                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                    exerciseList.remove(at: index)
-                                                }
-                                            } label: {
-                                                Image(systemName: "trash")
-                                                    .font(.system(size: 12))
-                                                    .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.361))
-                                                    .padding(6)
-                                            }
-                                        }
-                                        .padding(AppTheme.Spacing.sm)
-                                        .background(AppTheme.surface)
-                                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
-                                    }
-                                }
-                            }
-
-                            // Suggested Quick-Add Pills
-                            if let presets = presetLibrary[selectedMuscleGroup] {
-                                let unadded = presets.filter { !exerciseList.contains($0) }
-                                if !unadded.isEmpty {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("QUICK SUGGESTIONS")
-                                            .font(AppTheme.eyebrowFont)
-                                            .foregroundStyle(AppTheme.textMuted)
-
-                                        FlowLayout(spacing: 6) {
-                                            ForEach(unadded, id: \.self) { suggestion in
-                                                Button {
-                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        exerciseList.append(suggestion)
-                                                    }
-                                                } label: {
-                                                    HStack(spacing: 4) {
-                                                        Image(systemName: "plus")
-                                                            .font(.system(size: 9))
-                                                        Text(suggestion)
-                                                            .font(AppTheme.captionFont)
-                                                    }
-                                                    .padding(.horizontal, 9)
-                                                    .padding(.vertical, 5)
-                                                    .background(AppTheme.surfaceRaised)
-                                                    .foregroundStyle(AppTheme.primary)
-                                                    .clipShape(Capsule())
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(.top, 4)
-                                }
-                            }
-                        }
+                        muscleGroupSection
+                        exerciseCustomizerSection
                     } else {
-                        // Rest Day Information
-                        VStack(spacing: 12) {
-                            Image(systemName: "bed.double.fill")
-                                .font(.system(size: 34))
-                                .foregroundStyle(AppTheme.accent)
-                            Text("Scheduled Rest & Recovery Day")
-                                .font(AppTheme.headlineFont)
-                                .foregroundStyle(AppTheme.text)
-                            Text("This day is marked for muscle protein synthesis, central nervous system reset, and hydration.")
-                                .font(AppTheme.captionFont)
-                                .foregroundStyle(AppTheme.textSecondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(AppTheme.Spacing.xl)
-                        .background(AppTheme.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                        restDayCard
                     }
                 }
                 .padding(.horizontal, AppTheme.Spacing.screenMargin)
@@ -1341,6 +1108,269 @@ struct EditPlannerDaySheet: View {
                 self.exerciseList = parseInitialExercises(day.targetExercisesDescription)
             }
         }
+    }
+
+    // MARK: - Subviews to optimize Swift type-checker performance
+    private var dayTargetHeaderSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(day.dayName) Training Target")
+                        .font(AppTheme.headlineFont)
+                        .foregroundStyle(AppTheme.text)
+                    Text("Choose target muscle group or toggle Rest Day")
+                        .font(AppTheme.captionFont)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                Spacer()
+            }
+
+            Toggle(isOn: $isRest) {
+                HStack(spacing: 8) {
+                    Image(systemName: isRest ? "moon.stars.fill" : "flame.fill")
+                        .foregroundStyle(isRest ? AppTheme.accent : AppTheme.primary)
+                    Text("Scheduled Rest Day")
+                        .font(AppTheme.subheadlineFont.weight(.semibold))
+                        .foregroundStyle(AppTheme.text)
+                }
+            }
+            .tint(AppTheme.accent)
+            .onChange(of: isRest) { _, newValue in
+                if newValue {
+                    selectedMuscleGroup = "Rest Day"
+                } else if selectedMuscleGroup == "Rest Day" {
+                    selectedMuscleGroup = "Chest & Triceps"
+                }
+            }
+        }
+        .padding(AppTheme.Spacing.md)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+    }
+
+    private var muscleGroupSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            Text("TARGET MUSCLE GROUP")
+                .font(AppTheme.eyebrowFont)
+                .tracking(1.2)
+                .foregroundStyle(AppTheme.textSecondary)
+
+            Menu {
+                ForEach(bodyPartOptions, id: \.self) { option in
+                    Button {
+                        selectedMuscleGroup = option
+                    } label: {
+                        HStack {
+                            Text(option)
+                            if selectedMuscleGroup == option {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .foregroundStyle(AppTheme.primary)
+                    Text(selectedMuscleGroup)
+                        .font(AppTheme.headlineFont)
+                        .foregroundStyle(AppTheme.text)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.textMuted)
+                }
+                .padding(AppTheme.Spacing.md)
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                        .strokeBorder(AppTheme.primary.opacity(0.3), lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private var exerciseCustomizerSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+            exerciseSectionHeader
+            newExerciseInputRow
+            exerciseRowsList
+            suggestionsPills
+        }
+    }
+
+    private var exerciseSectionHeader: some View {
+        HStack {
+            Text("PLANNED EXERCISES")
+                .font(AppTheme.eyebrowFont)
+                .tracking(1.2)
+                .foregroundStyle(AppTheme.textSecondary)
+
+            Spacer()
+
+            if let presets = presetLibrary[selectedMuscleGroup], !presets.isEmpty {
+                Button {
+                    loadPresets(presets)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 11))
+                        Text("Load Preset Routine")
+                            .font(AppTheme.eyebrowFont)
+                    }
+                    .foregroundStyle(AppTheme.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.primary.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+            }
+        }
+    }
+
+    private var newExerciseInputRow: some View {
+        let isInputEmpty = newExerciseText.trimmingCharacters(in: .whitespaces).isEmpty
+        return HStack(spacing: 8) {
+            TextField("Add exercise (e.g. Incline DB Press)", text: $newExerciseText)
+                .font(AppTheme.subheadlineFont)
+                .foregroundStyle(AppTheme.text)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AppTheme.field)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                .onSubmit {
+                    addExercise()
+                }
+
+            Button(action: addExercise) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(AppTheme.onPrimary)
+                    .padding(11)
+                    .background(isInputEmpty ? AppTheme.surfaceRaised : AppTheme.primary)
+                    .clipShape(Circle())
+            }
+            .disabled(isInputEmpty)
+        }
+    }
+
+    @ViewBuilder
+    private var exerciseRowsList: some View {
+        if exerciseList.isEmpty {
+            VStack(spacing: 6) {
+                Image(systemName: "list.bullet.rectangle")
+                    .font(.system(size: 26))
+                    .foregroundStyle(AppTheme.textMuted)
+                Text("No exercises added yet")
+                    .font(AppTheme.subheadlineFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+                Text("Type an exercise above or tap 'Load Preset Routine'.")
+                    .font(AppTheme.captionFont)
+                    .foregroundStyle(AppTheme.textMuted)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+            .background(AppTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+        } else {
+            VStack(spacing: 6) {
+                ForEach(Array(exerciseList.indices), id: \.self) { index in
+                    exerciseRowItem(index: index, item: exerciseList[index])
+                }
+            }
+        }
+    }
+
+    private func exerciseRowItem(index: Int, item: String) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.primary.opacity(0.15))
+                    .frame(width: 26, height: 26)
+                Text("\(index + 1)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(AppTheme.primary)
+            }
+
+            Text(item)
+                .font(AppTheme.subheadlineFont)
+                .foregroundStyle(AppTheme.text)
+
+            Spacer()
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    if index < exerciseList.count {
+                        exerciseList.remove(at: index)
+                    }
+                }
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.red)
+                    .padding(6)
+            }
+        }
+        .padding(AppTheme.Spacing.sm)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+    }
+
+    @ViewBuilder
+    private var suggestionsPills: some View {
+        if let presets = presetLibrary[selectedMuscleGroup] {
+            let unadded = presets.filter { !exerciseList.contains($0) }
+            if !unadded.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("QUICK SUGGESTIONS")
+                        .font(AppTheme.eyebrowFont)
+                        .foregroundStyle(AppTheme.textMuted)
+
+                    FlowLayout(spacing: 6) {
+                        ForEach(unadded, id: \.self) { suggestion in
+                            Button {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    exerciseList.append(suggestion)
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 9))
+                                    Text(suggestion)
+                                        .font(AppTheme.captionFont)
+                                }
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(AppTheme.surfaceRaised)
+                                .foregroundStyle(AppTheme.primary)
+                                .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private var restDayCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "bed.double.fill")
+                .font(.system(size: 34))
+                .foregroundStyle(AppTheme.accent)
+            Text("Scheduled Rest & Recovery Day")
+                .font(AppTheme.headlineFont)
+                .foregroundStyle(AppTheme.text)
+            Text("This day is marked for muscle protein synthesis, central nervous system reset, and hydration.")
+                .font(AppTheme.captionFont)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(AppTheme.Spacing.xl)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
     }
 
     private func addExercise() {
