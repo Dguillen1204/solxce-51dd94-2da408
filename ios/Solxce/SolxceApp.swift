@@ -71,20 +71,21 @@ struct ContentView: View {
         appearance.backgroundColor = UIColor(Color(hex: "#0A0A0C"))
         appearance.shadowColor = UIColor(Color.white.opacity(0.12)) // subtle hairline top border
 
-        let normalItem = appearance.stackedLayoutAppearance.normal
-        normalItem.iconColor = UIColor(Color.white.opacity(0.45))
-        normalItem.titleTextAttributes = [.foregroundColor: UIColor(Color.white.opacity(0.45))]
-
-        let selectedItem = appearance.stackedLayoutAppearance.selected
+        // Configure item appearances for all layouts
+        let layouts = [
+            appearance.stackedLayoutAppearance,
+            appearance.inlineLayoutAppearance,
+            appearance.compactInlineLayoutAppearance
+        ]
         let accentUIColor = UIColor(accent.color)
-        selectedItem.iconColor = accentUIColor
-        selectedItem.titleTextAttributes = [.foregroundColor: accentUIColor]
+        let unselectedColor = UIColor(Color.white.opacity(0.45))
 
-        // Also configure inline and compact layouts
-        appearance.inlineLayoutAppearance.normal = normalItem
-        appearance.inlineLayoutAppearance.selected = selectedItem
-        appearance.compactInlineLayoutAppearance.normal = normalItem
-        appearance.compactInlineLayoutAppearance.selected = selectedItem
+        for layout in layouts {
+            layout.normal.iconColor = unselectedColor
+            layout.normal.titleTextAttributes = [.foregroundColor: unselectedColor]
+            layout.selected.iconColor = accentUIColor
+            layout.selected.titleTextAttributes = [.foregroundColor: accentUIColor]
+        }
 
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
