@@ -8,6 +8,7 @@ struct OtherUserProfileView: View {
     let initialAthleteType: AthleteType?
 
     @ObservedObject private var relationshipStore = SocialRelationshipStore.shared
+    @ObservedObject private var postStore = FeedPostStore.shared
     @AppStorage(AppTheme.activeAccentKey) private var selectedAccentRaw: String = AppAccentColor.volt.rawValue
 
     private var activeAccentColor: Color {
