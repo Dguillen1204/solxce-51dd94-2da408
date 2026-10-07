@@ -16,10 +16,12 @@ struct TrainTabView: View {
 
     @Query(sort: \WorkoutSession.date, order: .reverse) private var workoutSessions: [WorkoutSession]
     @Query(sort: \RunEntry.date, order: .reverse) private var runEntries: [RunEntry]
+    @Query(sort: \PlannerDay.dayOfWeek) private var plannerDays: [PlannerDay]
     @ObservedObject private var healthKit = HealthKitService.shared
 
     @State private var showingWorkoutLogger = false
     @State private var showingRunLogger = false
+    @State private var showingSplitPresets = false
     @State private var selectedFilter: TrainSectionFilter = .all
 
     enum TrainSectionFilter: String, CaseIterable {
@@ -36,12 +38,20 @@ struct TrainTabView: View {
         runEntries.reduce(0) { $0 + $1.distanceMiles }
     }
 
+    var todaysScheduledFocus: PlannerDay? {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        return plannerDays.first(where: { $0.dayOfWeek == weekday })
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: AppTheme.Spacing.lg) {
                     // Header Status & Section Hero
                     headerHeroSection
+
+                    // Today's Scheduled Split Card with Quick Customization
+                    todaySplitScheduleCard
 
                     // Quick Action Dual Launchers (Strength + Run)
                     actionLaunchers
@@ -53,10 +63,10 @@ struct TrainTabView: View {
                     filterPills
 
                     // Logged Sessions List
-                    sessionsList
+                    loggedSessionsList
                 }
                 .padding(.horizontal, AppTheme.Spacing.screenMargin)
-                .padding(.top, AppTheme.Spacing.xs)
+                .padding(.top, AppTheme.Spacing.sm)
                 .padding(.bottom, AppTheme.Spacing.xxl + 40)
             }
             .background(AppTheme.ground.ignoresSafeArea())
@@ -65,6 +75,9 @@ struct TrainTabView: View {
             }
             .sheet(isPresented: $showingRunLogger) {
                 RunLogView()
+            }
+            .sheet(isPresented: $showingSplitPresets) {
+                SplitPresetsSelectionSheet(days: plannerDays)
             }
         }
     }
@@ -79,6 +92,23 @@ struct TrainTabView: View {
                     .foregroundStyle(AppTheme.textSecondary)
 
                 Spacer()
+
+                Button {
+                    showingSplitPresets = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Change Split")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(AppTheme.surfaceRaised)
+                    .foregroundStyle(activeAccentColor)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().strokeBorder(activeAccentColor.opacity(0.3), lineWidth: 1))
+                }
             }
 
             Text("Train Hard.")
@@ -88,6 +118,80 @@ struct TrainTabView: View {
                 .font(AppTheme.largeTitleFont)
                 .foregroundStyle(AppTheme.accent)
         }
+    }
+
+    // MARK: - Today's Scheduled Split Card
+    private var todaySplitScheduleCard: some View {
+        let currentDay = todaysScheduledFocus
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(currentDay?.isRestDay == true ? Color.orange : activeAccentColor)
+                        .frame(width: 8, height: 8)
+                    Text("TODAY'S SCHEDULED SPLIT")
+                        .font(AppTheme.eyebrowFont)
+                        .foregroundStyle(currentDay?.isRestDay == true ? Color.orange : activeAccentColor)
+                }
+
+                Spacer()
+
+                Button {
+                    showingSplitPresets = true
+                } label: {
+                    Text("Edit Split")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.textMuted)
+                }
+            }
+
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(currentDay?.focusBodyPart ?? "Push / Chest & Arms")
+                        .font(.system(size: 17, weight: .heavy))
+                        .foregroundStyle(AppTheme.text)
+
+                    if let targetNotes = currentDay?.targetExercisesDescription, !targetNotes.isEmpty {
+                        Text(targetNotes)
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    } else if currentDay?.isRestDay == true {
+                        Text("Active recovery, mobility, or total rest")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textMuted)
+                    } else {
+                        Text("Tap to review routine exercises")
+                            .font(AppTheme.captionFont)
+                            .foregroundStyle(AppTheme.textMuted)
+                    }
+                }
+
+                Spacer()
+
+                if currentDay?.isRestDay == false {
+                    Button {
+                        showingWorkoutLogger = true
+                    } label: {
+                        Text("Start Today's Split")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(activeAccentColor)
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+        .padding(AppTheme.Spacing.md)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                .strokeBorder(AppTheme.hairline, lineWidth: 1)
+        )
     }
 
     // MARK: - Action Launchers (Strength + Run)
@@ -160,7 +264,7 @@ struct TrainTabView: View {
                             .font(AppTheme.headlineFont.weight(.black))
                             .tracking(1.2)
                             .foregroundStyle(AppTheme.proteinColor)
-                        Text("Distance, Pace & Aerobic Intervals")
+                        Text("GPS Outdoor, Treadmill & Track Intervals")
                             .font(AppTheme.captionFont)
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
@@ -169,10 +273,10 @@ struct TrainTabView: View {
                     Spacer()
 
                     HStack(spacing: 6) {
-                        Text("Start")
+                        Text("Track")
                             .font(AppTheme.captionFont.weight(.bold))
                             .foregroundStyle(AppTheme.proteinColor)
-                        Image(systemName: "plus.circle.fill")
+                        Image(systemName: "play.circle.fill")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(AppTheme.proteinColor)
                     }
@@ -184,82 +288,91 @@ struct TrainTabView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.Radii.card)
-                        .stroke(AppTheme.surfaceRaised, lineWidth: 1.2)
+                        .stroke(AppTheme.proteinColor.opacity(0.35), lineWidth: 1.2)
                 )
             }
             .buttonStyle(ScaleBounceButtonStyle())
         }
     }
 
-    // MARK: - Telemetry Summary Strip
+    // MARK: - Live Metrics Telemetry Summary Strip
     private var telemetrySummaryStrip: some View {
         HStack(spacing: AppTheme.Spacing.sm) {
-            telemetryMetricBox(
-                title: "TOTAL VOLUME",
-                value: "\(Int(totalVolumeLbs))",
-                unit: "lbs",
+            // Heart Rate
+            telemetryCard(
+                icon: "heart.fill",
+                iconColor: Color.red,
+                label: "HEART RATE",
+                value: healthKit.currentHeartRateBpm > 0 ? "\(Int(healthKit.currentHeartRateBpm))" : "--",
+                unit: "BPM"
+            )
+
+            // Active Calories
+            telemetryCard(
+                icon: "flame.fill",
+                iconColor: Color.orange,
+                label: "CALORIES",
+                value: "\(Int(healthKit.todayActiveCalories))",
+                unit: "KCAL"
+            )
+
+            // Lifetime Volume
+            telemetryCard(
                 icon: "scalemass.fill",
-                accentColor: AppTheme.accent
-            )
-
-            telemetryMetricBox(
-                title: "TOTAL DISTANCE",
-                value: String(format: "%.1f", totalMiles),
-                unit: "mi",
-                icon: "figure.run",
-                accentColor: AppTheme.proteinColor
-            )
-
-            telemetryMetricBox(
-                title: "COMPLETED",
-                value: "\(workoutSessions.count + runEntries.count)",
-                unit: "sessions",
-                icon: "checkmark.seal.fill",
-                accentColor: activeAccentColor
+                iconColor: AppTheme.accent,
+                label: "TOTAL VOLUME",
+                value: formatVolume(totalVolumeLbs),
+                unit: "LBS"
             )
         }
     }
 
-    private func telemetryMetricBox(title: String, value: String, unit: String, icon: String, accentColor: Color) -> some View {
+    private func telemetryCard(icon: String, iconColor: Color, label: String, value: String, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(accentColor)
-                Text(title)
-                    .font(.system(size: 9, weight: .heavy))
-                    .tracking(1.0)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(iconColor)
+                Text(label)
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(AppTheme.textSecondary)
             }
 
-            HStack(alignment: .lastTextBaseline, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(AppTheme.headlineFont.weight(.black))
+                    .font(.system(size: 16, weight: .heavy, design: .monospaced))
                     .foregroundStyle(AppTheme.text)
                 Text(unit)
-                    .font(AppTheme.captionFont)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(AppTheme.textMuted)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.Spacing.sm)
+        .padding(10)
         .background(AppTheme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                .stroke(AppTheme.hairline, lineWidth: 1)
+        )
     }
 
-    // MARK: - Filter Pills
+    // MARK: - Filter Segmented Pills
     private var filterPills: some View {
         HStack(spacing: AppTheme.Spacing.xs) {
             ForEach(TrainSectionFilter.allCases, id: \.self) { filter in
+                let isSelected = selectedFilter == filter
                 Button {
-                    selectedFilter = filter
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedFilter = filter
+                    }
                 } label: {
                     Text(filter.rawValue)
-                        .font(AppTheme.captionFont.weight(.semibold))
-                        .foregroundStyle(selectedFilter == filter ? AppTheme.onPrimary : AppTheme.textSecondary)
+                        .font(AppTheme.captionFont.weight(isSelected ? .bold : .medium))
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(selectedFilter == filter ? activeAccentColor : AppTheme.surface)
+                        .padding(.vertical, 8)
+                        .background(isSelected ? AppTheme.accent : AppTheme.surface)
+                        .foregroundStyle(isSelected ? AppTheme.onPrimary : AppTheme.textSecondary)
                         .clipShape(Capsule())
                 }
             }
@@ -267,18 +380,18 @@ struct TrainTabView: View {
         }
     }
 
-    // MARK: - Sessions List
-    private var sessionsList: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
-            if selectedFilter != .running {
-                ForEach(workoutSessions) { session in
+    // MARK: - Logged Sessions List
+    private var loggedSessionsList: some View {
+        VStack(spacing: AppTheme.Spacing.sm) {
+            if selectedFilter == .all || selectedFilter == .strength {
+                ForEach(workoutSessions.prefix(5)) { session in
                     workoutSessionRow(session)
                 }
             }
 
-            if selectedFilter != .strength {
-                ForEach(runEntries) { run in
-                    runSessionRow(run)
+            if selectedFilter == .all || selectedFilter == .running {
+                ForEach(runEntries.prefix(5)) { run in
+                    runEntryRow(run)
                 }
             }
 
@@ -291,81 +404,110 @@ struct TrainTabView: View {
     }
 
     private func workoutSessionRow(_ session: WorkoutSession) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(AppTheme.accent)
-                    Text(session.title)
-                        .font(AppTheme.headlineFont)
-                        .foregroundStyle(AppTheme.text)
-                }
-                Spacer()
-                Text(session.date.formatted(date: .abbreviated, time: .omitted))
+        HStack(spacing: AppTheme.Spacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(AppTheme.accent.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AppTheme.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(session.title)
+                    .font(AppTheme.headlineFont)
+                    .foregroundStyle(AppTheme.text)
+
+                Text("\(session.date.formatted(.dateTime.weekday().month().day())) • \(session.exercises.count) exercises")
                     .font(AppTheme.captionFont)
                     .foregroundStyle(AppTheme.textSecondary)
             }
 
-            HStack(spacing: AppTheme.Spacing.md) {
-                Label("\(session.bodyPartFocus)", systemImage: "figure.strengthtraining.traditional")
-                Label("\(Int(session.totalVolumeLbs)) lbs", systemImage: "scalemass")
-                Label("\(session.durationMinutes) min", systemImage: "clock")
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(Int(session.totalVolumeLbs).formatted()) lbs")
+                    .font(AppTheme.headlineFont.weight(.bold))
+                    .foregroundStyle(AppTheme.accent)
+
+                Text("\(Int(session.durationMinutes)) min")
+                    .font(AppTheme.captionFont)
+                    .foregroundStyle(AppTheme.textMuted)
             }
-            .font(AppTheme.captionFont)
-            .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(AppTheme.Spacing.md)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                .stroke(AppTheme.hairline, lineWidth: 1)
+        )
     }
 
-    private func runSessionRow(_ run: RunEntry) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "figure.run")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(AppTheme.proteinColor)
-                    Text(run.title)
-                        .font(AppTheme.headlineFont)
-                        .foregroundStyle(AppTheme.text)
-                }
-                Spacer()
-                Text(run.date.formatted(date: .abbreviated, time: .omitted))
+    private func runEntryRow(_ run: RunEntry) -> some View {
+        HStack(spacing: AppTheme.Spacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(AppTheme.proteinColor.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "figure.run")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AppTheme.proteinColor)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(run.title)
+                    .font(AppTheme.headlineFont)
+                    .foregroundStyle(AppTheme.text)
+
+                Text("\(run.date.formatted(.dateTime.weekday().month().day())) • \(run.runType.rawValue)")
                     .font(AppTheme.captionFont)
                     .foregroundStyle(AppTheme.textSecondary)
             }
 
-            HStack(spacing: AppTheme.Spacing.md) {
-                Label(String(format: "%.2f mi", run.distanceMiles), systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-                Label(run.formattedPace, systemImage: "speedometer")
-                Label(run.formattedDuration, systemImage: "clock")
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(format: "%.2f mi", run.distanceMiles))
+                    .font(AppTheme.headlineFont.weight(.bold))
+                    .foregroundStyle(AppTheme.proteinColor)
+
+                Text(run.formattedPace)
+                    .font(AppTheme.captionFont)
+                    .foregroundStyle(AppTheme.textMuted)
             }
-            .font(AppTheme.captionFont)
-            .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(AppTheme.Spacing.md)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                .stroke(AppTheme.hairline, lineWidth: 1)
+        )
     }
 
     private var emptyState: some View {
-        VStack(spacing: AppTheme.Spacing.sm) {
-            Image(systemName: "dumbbell")
-                .font(.system(size: 32))
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.4))
-            Text("No Training Sessions Yet")
+        VStack(spacing: 8) {
+            Image(systemName: "figure.cross-training")
+                .font(.system(size: 36))
+                .foregroundStyle(AppTheme.textMuted)
+            Text("No logged sessions yet")
                 .font(AppTheme.headlineFont)
-                .foregroundStyle(AppTheme.text)
-            Text("Tap Log Lift or Log Run above to record your first workout.")
-                .font(AppTheme.captionFont)
                 .foregroundStyle(AppTheme.textSecondary)
+            Text("Tap Log Lift or Log Run above to track your first apex session.")
+                .font(AppTheme.captionFont)
+                .foregroundStyle(AppTheme.textMuted)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 36)
-        .background(AppTheme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+        .padding(.vertical, 32)
+    }
+
+    private func formatVolume(_ volume: Double) -> String {
+        if volume >= 1000 {
+            return String(format: "%.1fk", volume / 1000)
+        }
+        return "\(Int(volume))"
     }
 }
