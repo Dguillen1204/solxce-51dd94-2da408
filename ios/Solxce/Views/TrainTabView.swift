@@ -461,7 +461,7 @@ struct TrainTabView: View {
                     .font(AppTheme.headlineFont)
                     .foregroundStyle(AppTheme.text)
 
-                Text("\(run.date.formatted(.dateTime.weekday().month().day())) • \(run.runType.rawValue)")
+                Text("\(run.date.formatted(.dateTime.weekday().month().day())) • \(Int(run.durationSeconds / 60)) mins")
                     .font(AppTheme.captionFont)
                     .foregroundStyle(AppTheme.textSecondary)
             }
