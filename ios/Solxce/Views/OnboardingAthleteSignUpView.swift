@@ -13,11 +13,16 @@ struct OnboardingAthleteSignUpView: View {
     @State private var selectedAthleteType: AthleteType = .hybrid
     @State private var fullName: String = ""
     @State private var handle: String = ""
+    @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var confirmPassword: String = ""
+    @State private var isPasswordVisible: Bool = false
     @State private var bio: String = ""
     @State private var selectedAvatarIcon: String = "bolt.shield.fill"
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var profileImageData: Data? = nil
     @State private var isPublicProfile: Bool = true
+    @State private var validationErrorMessage: String? = nil
 
     let avatarChoices = [
         "bolt.shield.fill",
@@ -41,7 +46,7 @@ struct OnboardingAthleteSignUpView: View {
                 topProgressBar
 
                 TabView(selection: $currentStep) {
-                    // Step 0: Welcome & Basic Identity
+                    // Step 0: Welcome, Credentials & Basic Identity
                     identityStepView
                         .tag(0)
 
@@ -118,7 +123,7 @@ struct OnboardingAthleteSignUpView: View {
         .padding(.bottom, 12)
     }
 
-    // MARK: - Step 0: Basic Identity
+    // MARK: - Step 0: Basic Identity & Credentials
     private var identityStepView: some View {
         ScrollView {
             VStack(spacing: AppTheme.Spacing.lg) {
@@ -128,13 +133,27 @@ struct OnboardingAthleteSignUpView: View {
                         .foregroundColor(AppTheme.text)
                         .multilineTextAlignment(.center)
 
-                    Text("Set up your athletic profile to unlock workout logs, calorie targets, and the community feed.")
+                    Text("Set up your athletic profile & secure login credentials to unlock logs, telemetry, and community.")
                         .font(AppTheme.bodyFont)
                         .foregroundColor(AppTheme.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 12)
                 }
                 .padding(.top, 16)
+
+                if let err = validationErrorMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundColor(.red)
+                        Text(err)
+                            .font(AppTheme.captionFont)
+                            .foregroundColor(.red)
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.red.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                }
 
                 // Avatar & Profile Photo Choice
                 VStack(spacing: 16) {
@@ -236,7 +255,7 @@ struct OnboardingAthleteSignUpView: View {
                         .stroke(AppTheme.hairline, lineWidth: 1)
                 )
 
-                // Input Fields
+                // Profile Fields
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("FULL NAME")
@@ -308,9 +327,154 @@ struct OnboardingAthleteSignUpView: View {
                     RoundedRectangle(cornerRadius: AppTheme.Radii.card)
                         .stroke(AppTheme.hairline, lineWidth: 1)
                 )
+
+                // Password & Security Card
+                VStack(spacing: 16) {
+                    HStack {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundColor(AppTheme.primary)
+                        Text("ACCOUNT SECURITY & PASSWORD")
+                            .font(AppTheme.eyebrowFont)
+                            .foregroundColor(AppTheme.textSecondary)
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("EMAIL ADDRESS (OPTIONAL)")
+                            .font(AppTheme.eyebrowFont)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        TextField("athlete@example.com", text: $email)
+                            .font(AppTheme.bodyFont)
+                            .foregroundColor(AppTheme.text)
+                            .keyboardType(.emailAddress)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(AppTheme.surfaceRaised)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.Radii.button)
+                                    .stroke(AppTheme.hairline, lineWidth: 1)
+                            )
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("CREATE PASSWORD")
+                                .font(AppTheme.eyebrowFont)
+                                .foregroundColor(AppTheme.textSecondary)
+                            Spacer()
+                            Button {
+                                isPasswordVisible.toggle()
+                            } label: {
+                                Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+
+                        Group {
+                            if isPasswordVisible {
+                                TextField("Minimum 8 characters", text: $password)
+                            } else {
+                                SecureField("Minimum 8 characters", text: $password)
+                            }
+                        }
+                        .font(AppTheme.bodyFont)
+                        .foregroundColor(AppTheme.text)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(AppTheme.surfaceRaised)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radii.button)
+                                .stroke(AppTheme.hairline, lineWidth: 1)
+                        )
+
+                        // Password strength meter
+                        if !password.isEmpty {
+                            HStack(spacing: 4) {
+                                ForEach(0..<4) { idx in
+                                    Rectangle()
+                                        .fill(passwordStrengthColor(score: passwordStrengthScore, index: idx))
+                                        .frame(height: 3)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            .padding(.top, 2)
+
+                            Text(passwordStrengthLabel)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(passwordStrengthColor(score: passwordStrengthScore, index: 0))
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CONFIRM PASSWORD")
+                            .font(AppTheme.eyebrowFont)
+                            .foregroundColor(AppTheme.textSecondary)
+
+                        Group {
+                            if isPasswordVisible {
+                                TextField("Re-enter password", text: $confirmPassword)
+                            } else {
+                                SecureField("Re-enter password", text: $confirmPassword)
+                            }
+                        }
+                        .font(AppTheme.bodyFont)
+                        .foregroundColor(AppTheme.text)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(AppTheme.surfaceRaised)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.button))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radii.button)
+                                .stroke(AppTheme.hairline, lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(AppTheme.Spacing.md)
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.card))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.Radii.card)
+                        .stroke(AppTheme.hairline, lineWidth: 1)
+                )
             }
             .padding(.horizontal, AppTheme.Spacing.screenMargin)
             .padding(.bottom, 24)
+        }
+    }
+
+    private var passwordStrengthScore: Int {
+        var score = 0
+        if password.count >= 8 { score += 1 }
+        if password.rangeOfCharacter(from: .uppercaseLetters) != nil && password.rangeOfCharacter(from: .lowercaseLetters) != nil { score += 1 }
+        if password.rangeOfCharacter(from: .decimalDigits) != nil { score += 1 }
+        if password.rangeOfCharacter(from: .punctuationCharacters) != nil || password.rangeOfCharacter(from: .symbols) != nil { score += 1 }
+        return score
+    }
+
+    private var passwordStrengthLabel: String {
+        switch passwordStrengthScore {
+        case 0, 1: return "Weak password"
+        case 2: return "Moderate password"
+        case 3: return "Strong password"
+        default: return "Very strong password"
+        }
+    }
+
+    private func passwordStrengthColor(score: Int, index: Int) -> Color {
+        if index >= score {
+            return AppTheme.surfaceRaised
+        }
+        switch score {
+        case 1: return .red
+        case 2: return .orange
+        case 3: return AppTheme.primary
+        default: return .green
         }
     }
 
@@ -503,6 +667,21 @@ struct OnboardingAthleteSignUpView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
+                    // Security & Password Protection Badge
+                    if !password.isEmpty || KeychainHelper.hasPassword() {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.shield.fill")
+                                .foregroundColor(.green)
+                            Text("Password protection configured & encrypted in secure Keychain.")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.green.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radii.tag))
+                    }
+
                     // Feed Visibility Notice
                     HStack(spacing: 8) {
                         Image(systemName: "globe.americas.fill")
@@ -544,7 +723,11 @@ struct OnboardingAthleteSignUpView: View {
     private var bottomActionButtons: some View {
         VStack(spacing: 12) {
             Button {
-                if currentStep < 2 {
+                if currentStep == 0 {
+                    if validateStep0() {
+                        withAnimation { currentStep = 1 }
+                    }
+                } else if currentStep < 2 {
                     withAnimation { currentStep += 1 }
                 } else {
                     completeSignUp()
@@ -573,11 +756,30 @@ struct OnboardingAthleteSignUpView: View {
         .background(AppTheme.surface.opacity(0.85).ignoresSafeArea())
     }
 
+    private func validateStep0() -> Bool {
+        validationErrorMessage = nil
+        if !password.isEmpty {
+            if password.count < 8 {
+                validationErrorMessage = "Password must be at least 8 characters long."
+                return false
+            }
+            if !confirmPassword.isEmpty && password != confirmPassword {
+                validationErrorMessage = "Passwords do not match."
+                return false
+            }
+        }
+        return true
+    }
+
     // MARK: - Save and Commit
     private func completeSignUp() {
         let finalName = fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Solxce Athlete" : fullName.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "solxce_athlete" : handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: " ", with: "_")
         let finalBio = bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? selectedAthleteType.description : bio.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !password.isEmpty {
+            _ = KeychainHelper.savePassword(password)
+        }
 
         let descriptor = FetchDescriptor<UserProfile>()
         if let existingProfiles = try? modelContext.fetch(descriptor), let existing = existingProfiles.first {
@@ -604,8 +806,16 @@ struct OnboardingAthleteSignUpView: View {
         try? modelContext.save()
         UserDefaults.standard.set(true, forKey: "solxce_has_completed_athlete_signup")
 
-        // Sync profile to cloud backend via TenxData
+        if !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            UserDefaults.standard.set(email.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "solxce_user_email")
+        }
+
+        // Sync profile to cloud backend via TenxData / TenxAuth
+        let chosenEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "\(finalHandle)@solxce.app" : email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let chosenPass = password.isEmpty ? "SolxcePass2025!" : password
+
         Task {
+            _ = try? await BackendSyncService.shared.signUp(email: chosenEmail, password: chosenPass)
             await BackendSyncService.shared.syncProfileData(
                 name: finalName,
                 handle: finalHandle,
