@@ -1,7 +1,6 @@
 // Models/AppModels.swift
 import Foundation
 import SwiftData
-import CoreLocation
 import SwiftUI
 
 // MARK: - Athlete Archetype

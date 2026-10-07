@@ -1,7 +1,6 @@
 // Views/PlannerView.swift
 import SwiftUI
 import SwiftData
-import EventKit
 
 struct PlannerView: View {
     @Environment(\.modelContext) private var modelContext

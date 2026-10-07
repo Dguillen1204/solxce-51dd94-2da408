@@ -2,7 +2,6 @@
 import SwiftUI
 import SwiftData
 import MapKit
-import CoreLocation
 
 enum RunTrackingMode: String, CaseIterable, Identifiable {
     case live = "Live GPS Tracker"

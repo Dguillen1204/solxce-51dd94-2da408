@@ -1,6 +1,5 @@
 // Views/AppleWatchHubView.swift
 import SwiftUI
-import HealthKit
 
 struct AppleWatchHubView: View {
     @Environment(\.dismiss) private var dismiss
